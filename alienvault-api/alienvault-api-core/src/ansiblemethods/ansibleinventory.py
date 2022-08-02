@@ -47,7 +47,7 @@ class AnsibleInventoryManagerError(Exception):
         self.code = code
 
     def __str__(self):
-        return repr("[%s] %s" %(self.code,self.msg))
+        return repr(f"[{self.code}] {self.msg}")
 
 
 class AnsibleInventoryManagerFileNotFound(AnsibleInventoryManagerError):
@@ -78,14 +78,16 @@ class AnsibleInventoryManager():
         self.__inventory_file = inventory_file
         self.__dirty = False
         if not os.path.exists(self.__inventory_file):
-            raise AnsibleInventoryManagerFileNotFound("File: %s Not found or not accessible" % self.__inventory_file)
+            raise AnsibleInventoryManagerFileNotFound(
+                f"File: {self.__inventory_file} Not found or not accessible"
+            )
+
         self.__inventory = Inventory(inventory_file)
 
     def get_hosts(self):
         """return the list of hosts
         Returns a list host ips"""
-        host_list = [host.name for host in self.__inventory.get_hosts()]
-        return host_list
+        return [host.name for host in self.__inventory.get_hosts()]
 
     def get_groups(self):
         """return the groups
@@ -128,9 +130,8 @@ class AnsibleInventoryManager():
         for key,value in var_list.iteritems():
             if self.is_allowed_variable(key):
                 new_host.set_variable(key,value)
-        if add_to_root:
-            if 'ungrouped' not in group_list:
-                group_list.append('ungrouped')
+        if add_to_root and 'ungrouped' not in group_list:
+            group_list.append('ungrouped')
 
         #Check groups. The ansible inventory should contain each of the groups.
         for group in group_list:

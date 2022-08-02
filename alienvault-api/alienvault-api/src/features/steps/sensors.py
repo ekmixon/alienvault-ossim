@@ -62,13 +62,17 @@ def given_select_sensor_uuid (context,var_name):
      context.alienvault[var_name] = sensor.serialize['id']
 
 @behave.then(u'JSON response interfaces are in ossim_setup.conf')
-def then_json_sensor_interfaces (context):
+def then_json_sensor_interfaces(context):
     interfaces = json.loads(context.result.getvalue())
     ifaces = interfaces['data']['interfaces']
     setup = AVOssimSetupConfigHandler (logfile="/dev/null")
     if_setup =  setup.get_sensor_interfaces_list()
     #Compare
-    assert_equal(set(if_setup).issubset (set (ifaces)), True,"The API list %s not equals to the file list %s" % (str(ifaces),str(if_setup)))
+    assert_equal(
+        set(if_setup).issubset(set(ifaces)),
+        True,
+        f"The API list {str(ifaces)} not equals to the file list {str(if_setup)}",
+    )
 
 
 #Verify the sensor properties of a sensor
@@ -110,7 +114,4 @@ def then_sensor_network_verify(context,st_network):
 @behave.given(u'I create a ossec agent in the sensor with id "{var_id}" in variable "{var_uuid}"')
 def given_create_ossec_agent(context, var_id, var_uuid):
     u = uuid.UUID(context.alienvault[var_uuid])
-    # Add a agent
-    # I need to use here some function to add and agent
-    pass
 # vim:ts=4:expandtab

@@ -52,10 +52,7 @@ blueprint = Blueprint(__name__, __name__)  # pylint: disable-msg=C0103
 @accepted_url({'sensor_id': {'type': UUID, 'values': ['local']}})
 def get_ossec_configuration_agent(sensor_id):
     success, data = ossec_get_agent_config(sensor_id)
-    if not success:
-        return make_error(data, 500)
-
-    return make_ok(local_path=str(data))
+    return make_ok(local_path=str(data)) if success else make_error(data, 500)
 
 
 @blueprint.route('/<sensor_id>/ossec/configuration/agent', methods=['PUT'])
@@ -64,10 +61,7 @@ def get_ossec_configuration_agent(sensor_id):
 @accepted_url({'sensor_id': {'type': UUID, 'values': ['local']}})
 def put_ossec_configuration_agent(sensor_id):
     success, msg = ossec_put_agent_config(sensor_id)
-    if not success:
-        return make_error(msg, 500)
-
-    return make_ok()
+    return make_ok() if success else make_error(msg, 500)
 
 
 @blueprint.route('/<sensor_id>/ossec/configuration/server', methods=['GET'])
@@ -76,10 +70,7 @@ def put_ossec_configuration_agent(sensor_id):
 @accepted_url({'sensor_id': {'type': UUID, 'values': ['local']}})
 def get_ossec_configuration_server(sensor_id):
     success, data = ossec_get_server_config(sensor_id)
-    if not success:
-        return make_error(data, 500)
-
-    return make_ok(local_path=str(data))
+    return make_ok(local_path=str(data)) if success else make_error(data, 500)
 
 
 @blueprint.route('/<sensor_id>/ossec/configuration/server', methods=['PUT'])
@@ -88,10 +79,7 @@ def get_ossec_configuration_server(sensor_id):
 @accepted_url({'sensor_id': {'type': UUID, 'values': ['local']}})
 def put_ossec_configuration_server(sensor_id):
     success, msg = ossec_put_server_config(sensor_id)
-    if not success:
-        return make_error(msg, 500)
-
-    return make_ok()
+    return make_ok() if success else make_error(msg, 500)
 
 
 @blueprint.route('/<sensor_id>/ossec/configuration/rule', methods=['GET'])
@@ -102,12 +90,9 @@ def put_ossec_configuration_server(sensor_id):
 def get_configuration_rule_file(sensor_id):
     rule_filename = request.args.get("rule")
     if rule_filename is None or rule_filename == "":
-        return make_bad_request("Invalid rule filename <%s>" % rule_filename)
+        return make_bad_request(f"Invalid rule filename <{rule_filename}>")
     (success, data) = apimethod_get_configuration_rule_file(sensor_id, rule_filename)
-    if not success:
-        return make_error(data, 500)
-    else:
-        return make_ok(local_path=str(data))
+    return make_ok(local_path=str(data)) if success else make_error(data, 500)
 
 
 @blueprint.route('/<sensor_id>/ossec/configuration/rule', methods=['PUT'])
@@ -120,7 +105,4 @@ def put_configuration_rule_file(sensor_id):
     if rule_filename not in ['local_rules.xml','rules_config.xml']:
         return make_bad_request("Invalid value for rule name. Allowed values are ['local_rules.xml','rules_config.xml'] ")
     (success, data) = apimethod_put_ossec_configuration_file(sensor_id,rule_filename)
-    if not success:
-        return make_error(data, 500)
-    else:
-        return make_ok(message=str(data))
+    return make_ok(message=str(data)) if success else make_error(data, 500)

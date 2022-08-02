@@ -93,8 +93,7 @@ class Event:
     ]
 
     def __init__(self):
-        self.event = {}
-        self.event["event_type"] = self.EVENT_TYPE
+        self.event = {"event_type": self.EVENT_TYPE}
         self.normalized = False
         self.is_idm = (self.EVENT_TYPE == "idm-event")
 
@@ -110,13 +109,10 @@ class Event:
                 if devicedata != "":
                     return
             key = "device"
-        if (key == "sensor" or key == "device") and self.is_idm:
+        if key in ["sensor", "device"] and self.is_idm:
             return
         if key in self.EVENT_ATTRS:
-            if key in self.EVENT_BASE64:
-                self.event[key] = b64encode(value)
-            else:
-                self.event[key] = value
+            self.event[key] = b64encode(value) if key in self.EVENT_BASE64 else value
             if key == "date" and not self.normalized:
                 # Fill with a default date.
                 date_epoch = int(time())
@@ -133,7 +129,7 @@ class Event:
 
 
         elif key != 'event_type' and not isinstance(self, EventIdm):
-            print("Bad event attribute: %s" % (key))
+            print(f"Bad event attribute: {key}")
 
     def __getitem__(self, key):
         return self.event.get(key, None)

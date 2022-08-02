@@ -60,7 +60,10 @@ def post_enable_tunnel(system_id):
         return make_bad_request("Missing param ticket")
     success, result = connect_tunnel(system_id, case_id)
     if not success:
-        api_log.error("Failed API call: remote addr = %s, host addr = %s, blueprint = %s, URL = %s method = %s result = %s" % (request.remote_addr, request.host, request.blueprint, request.base_url, request.method, str(result)))
+        api_log.error(
+            f"Failed API call: remote addr = {request.remote_addr}, host addr = {request.host}, blueprint = {request.blueprint}, URL = {request.base_url} method = {request.method} result = {str(result)}"
+        )
+
         return make_error(result,  500)
     return make_ok()
 
@@ -81,8 +84,11 @@ def get_status_tunnel(system_id):
     """
     success, result = status_tunnel(system_id)
     if not success:
-        api_log.error("Failed API call:  remotee addr = %s, host addr = %s, blueprint = %s, URL = %s method = %s" % (request.remote_addr, request.host, request.blueprint, request.base_url, request.method))
-        return make_error("Cannot get tunnel status for system %s" % system_id, 500)
+        api_log.error(
+            f"Failed API call:  remotee addr = {request.remote_addr}, host addr = {request.host}, blueprint = {request.blueprint}, URL = {request.base_url} method = {request.method}"
+        )
+
+        return make_error(f"Cannot get tunnel status for system {system_id}", 500)
     return make_ok(pids=result)
 
 
@@ -97,6 +103,9 @@ def del_tunnel(system_id):
     """
     success, result = delete_tunnel(system_id)
     if not success:
-        api_log.error("Failed API call:  remotee addr = %s, host addr = %s, blueprint = %s, URL = %s method = %s result = %s" % (request.remote_addr, request.host, request.blueprint, request.base_url, request.method, str(result)))
-        return make_error("Cannot stop support tunnels for system %s" % system_id, 500)
+        api_log.error(
+            f"Failed API call:  remotee addr = {request.remote_addr}, host addr = {request.host}, blueprint = {request.blueprint}, URL = {request.base_url} method = {request.method} result = {str(result)}"
+        )
+
+        return make_error(f"Cannot stop support tunnels for system {system_id}", 500)
     return make_ok()

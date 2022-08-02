@@ -162,7 +162,7 @@ class Monitor(object):
         :return: An json string
         """
         if message_fields is None:
-            message_fields = dict()
+            message_fields = {}
         return json.dumps(message_fields)
 
     def get_monitor_id(self):

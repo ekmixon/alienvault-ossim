@@ -257,8 +257,9 @@ class Facts(object):
         elif self.facts['system'] == 'HP-UX':
             self.facts['distribution'] = 'HP-UX'
             rc, out, err = module.run_command("/usr/sbin/swlist |egrep 'HPUX.*OE.*[AB].[0-9]+\.[0-9]+'")
-            data = re.search('HPUX.*OE.*([AB].[0-9]+\.[0-9]+)\.([0-9]+).*', out)
-            if data:
+            if data := re.search(
+                'HPUX.*OE.*([AB].[0-9]+\.[0-9]+)\.([0-9]+).*', out
+            ):
                 self.facts['distribution_version'] = data.groups()[0]
                 self.facts['distribution_release'] = data.groups()[1]
         elif self.facts['system'] == 'Darwin':
@@ -274,8 +275,7 @@ class Facts(object):
             self.facts['distribution'] = 'OpenBSD'
             self.facts['distribution_release'] = platform.release()
             rc, out, err = module.run_command("/sbin/sysctl -n kern.version")
-            match = re.match('OpenBSD\s[0-9]+.[0-9]+-(\S+)\s.*', out)
-            if match:
+            if match := re.match('OpenBSD\s[0-9]+.[0-9]+-(\S+)\s.*', out):
                 self.facts['distribution_version'] = match.groups()[0]
             else:
                 self.facts['distribution_version'] = 'release'
@@ -291,10 +291,7 @@ class Facts(object):
                         pass
                     elif name == 'RedHat':
                         data = get_file_content(path)
-                        if 'Red Hat' in data:
-                            self.facts['distribution'] = name
-                        else:
-                            self.facts['distribution'] = data.split()[0]
+                        self.facts['distribution'] = name if 'Red Hat' in data else data.split()[0]
                     elif name == 'OtherLinux':
                         data = get_file_content(path)
                         if 'Amazon' in data:
@@ -304,11 +301,9 @@ class Facts(object):
                         data = get_file_content(path)
                         if 'OpenWrt' in data:
                             self.facts['distribution'] = name
-                        version = re.search('DISTRIB_RELEASE="(.*)"', data)
-                        if version:
+                        if version := re.search('DISTRIB_RELEASE="(.*)"', data):
                             self.facts['distribution_version'] = version.groups()[0]
-                        release = re.search('DISTRIB_CODENAME="(.*)"', data)
-                        if release:
+                        if release := re.search('DISTRIB_CODENAME="(.*)"', data):
                             self.facts['distribution_release'] = release.groups()[0]
                     elif name == 'Alpine':
                         data = get_file_content(path)
@@ -331,15 +326,11 @@ class Facts(object):
             self.facts['os_family'] = OS_FAMILY[self.facts['distribution']]
 
     def get_cmdline(self):
-        data = get_file_content('/proc/cmdline')
-        if data:
+        if data := get_file_content('/proc/cmdline'):
             self.facts['cmdline'] = {}
             for piece in shlex.split(data):
                 item = piece.split('=', 1)
-                if len(item) == 1:
-                    self.facts['cmdline'][item[0]] = True
-                else:
-                    self.facts['cmdline'][item[0]] = item[1]
+                self.facts['cmdline'][item[0]] = True if len(item) == 1 else item[1]
 
     def get_public_ssh_host_keys(self):
         dsa_filename = '/etc/ssh/ssh_host_dsa_key.pub'
@@ -385,14 +376,17 @@ class Facts(object):
             if len(line) < 1:
                 continue
             value = line.split(':', 1)[1].strip()
-            if 'LSB Version:' in line:
+            if (
+                'LSB Version:' in line
+                or 'Distributor ID:' not in line
+                and 'Description:' not in line
+                and 'Release:' in line
+            ):
                 self.facts['lsb']['release'] = value
             elif 'Distributor ID:' in line:
                 self.facts['lsb']['id'] = value
             elif 'Description:' in line:
                 self.facts['lsb']['description'] = value
-            elif 'Release:' in line:
-                self.facts['lsb']['release'] = value
             elif 'Codename:' in line:
                 self.facts['lsb']['codename'] = value
         if 'lsb' in self.facts and 'release' in self.facts['lsb']:
@@ -459,9 +453,7 @@ class Facts(object):
         self.facts['user_id'] = getpass.getuser()
 
     def get_env_facts(self):
-        self.facts['env'] = {}
-        for k,v in os.environ.iteritems():
-            self.facts['env'][k] = v
+        self.facts['env'] = dict(os.environ.iteritems())
 
 class Hardware(Facts):
     """
@@ -524,12 +516,12 @@ class LinuxHardware(Hardware):
     def get_memory_facts(self):
         if not os.access("/proc/meminfo", os.R_OK):
             return
-        for line in open("/proc/meminfo").readlines():
+        for line in open("/proc/meminfo"):
             data = line.split(":", 1)
             key = data[0]
             if key in LinuxHardware.MEMORY_FACTS:
                 val = data[1].strip().split(' ')[0]
-                self.facts["%s_mb" % key.lower()] = long(val) / 1024
+                self.facts[f"{key.lower()}_mb"] = long(val) / 1024
 
     def get_cpu_facts(self):
         i = 0
@@ -540,12 +532,12 @@ class LinuxHardware(Hardware):
         if not os.access("/proc/cpuinfo", os.R_OK):
             return
         self.facts['processor'] = []
-        for line in open("/proc/cpuinfo").readlines():
+        for line in open("/proc/cpuinfo"):
             data = line.split(":", 1)
             key = data[0].strip()
             # model name is for Intel arch, Processor (mind the uppercase P)
             # works for some ARM devices, like the Sheevaplug.
-            if key == 'model name' or key == 'Processor':
+            if key in ['model name', 'Processor']:
                 if 'processor' not in self.facts:
                     self.facts['processor'] = []
                 self.facts['processor'].append(data[1].strip())
@@ -796,7 +788,7 @@ class SunOSHardware(Hardware):
                 processor = brand or data[1].strip()
                 # Add clock speed to description for SPARC CPU
                 if self.facts['machine'] != 'i86pc':
-                    processor += " @ " + clock_mhz + "MHz"
+                    processor += f" @ {clock_mhz}MHz"
                 if 'processor' not in self.facts:
                     self.facts['processor'] = []
                 self.facts['processor'].append(processor)
@@ -811,7 +803,7 @@ class SunOSHardware(Hardware):
         # Treat 'processor_count' as physical sockets and 'processor_cores' as
         # virtual CPUs visisble to Solaris. Not a true count of cores for modern SPARC as
         # these processors have: sockets -> cores -> threads/virtual CPU.
-        if len(sockets) > 0:
+        if sockets:
             self.facts['processor_count'] = len(sockets)
             self.facts['processor_cores'] = reduce(lambda x, y: x + y, sockets.values())
         else:
@@ -862,8 +854,8 @@ class OpenBSDHardware(Hardware):
     def get_sysctl(self):
         rc, out, err = module.run_command(["/sbin/sysctl", "hw"])
         if rc != 0:
-            return dict()
-        sysctl = dict()
+            return {}
+        sysctl = {}
         for line in out.splitlines():
             (key, value) = line.split('=')
             sysctl[key] = value.strip()
@@ -977,8 +969,7 @@ class FreeBSDHardware(Hardware):
 
     def get_mount_facts(self):
         self.facts['mounts'] = []
-        fstab = get_file_content('/etc/fstab')
-        if fstab:
+        if fstab := get_file_content('/etc/fstab'):
             for line in fstab.split('\n'):
                 if line.startswith('#') or line.strip() == '':
                     continue
@@ -995,10 +986,9 @@ class FreeBSDHardware(Hardware):
             for device in dirlist:
                 d = drives.match(device)
                 if d:
-                    self.facts['devices'][d.group(1)] = []
-                s = slices.match(device)
-                if s:
-                    self.facts['devices'][d.group(1)].append(s.group(1))
+                    self.facts['devices'][d[1]] = []
+                if s := slices.match(device):
+                    self.facts['devices'][d[1]].append(s[1])
 
 class NetBSDHardware(Hardware):
     """
@@ -1032,12 +1022,12 @@ class NetBSDHardware(Hardware):
         if not os.access("/proc/cpuinfo", os.R_OK):
             return
         self.facts['processor'] = []
-        for line in open("/proc/cpuinfo").readlines():
+        for line in open("/proc/cpuinfo"):
             data = line.split(":", 1)
             key = data[0].strip()
             # model name is for Intel arch, Processor (mind the uppercase P)
             # works for some ARM devices, like the Sheevaplug.
-            if key == 'model name' or key == 'Processor':
+            if key in ['model name', 'Processor']:
                 if 'processor' not in self.facts:
                     self.facts['processor'] = []
                 self.facts['processor'].append(data[1].strip())
@@ -1048,7 +1038,7 @@ class NetBSDHardware(Hardware):
                     sockets[physid] = 1
             elif key == 'cpu cores':
                 sockets[physid] = int(data[1].strip())
-        if len(sockets) > 0:
+        if sockets:
             self.facts['processor_count'] = len(sockets)
             self.facts['processor_cores'] = reduce(lambda x, y: x + y, sockets.values())
         else:
@@ -1058,17 +1048,16 @@ class NetBSDHardware(Hardware):
     def get_memory_facts(self):
         if not os.access("/proc/meminfo", os.R_OK):
             return
-        for line in open("/proc/meminfo").readlines():
+        for line in open("/proc/meminfo"):
             data = line.split(":", 1)
             key = data[0]
             if key in NetBSDHardware.MEMORY_FACTS:
                 val = data[1].strip().split(' ')[0]
-                self.facts["%s_mb" % key.lower()] = long(val) / 1024
+                self.facts[f"{key.lower()}_mb"] = long(val) / 1024
 
     def get_mount_facts(self):
         self.facts['mounts'] = []
-        fstab = get_file_content('/etc/fstab')
-        if fstab:
+        if fstab := get_file_content('/etc/fstab'):
             for line in fstab.split('\n'):
                 if line.startswith('#') or line.strip() == '':
                     continue
@@ -1114,12 +1103,15 @@ class AIX(Hardware):
                     i += 1
             self.facts['processor_count'] = int(i)
 
-            rc, out, err = module.run_command("/usr/sbin/lsattr -El " + cpudev + " -a type")
+            rc, out, err = module.run_command(f"/usr/sbin/lsattr -El {cpudev} -a type")
 
             data = out.split(' ')
             self.facts['processor'] = data[1]
 
-            rc, out, err = module.run_command("/usr/sbin/lsattr -El " + cpudev + " -a smt_threads")
+            rc, out, err = module.run_command(
+                f"/usr/sbin/lsattr -El {cpudev} -a smt_threads"
+            )
+
 
             data = out.split(' ')
             self.facts['processor_cores'] = int(data[1])
@@ -1182,7 +1174,6 @@ class HPUX(Hardware):
         if self.facts['architecture'] == '9000/800':
             rc, out, err = module.run_command("ioscan -FkCprocessor|wc -l")
             self.facts['processor_count'] = int(out.strip())
-        #Working with machinfo mess
         elif self.facts['architecture'] == 'ia64':
             if self.facts['distribution_version'] == "B.11.23":
                 rc, out, err = module.run_command("/usr/contrib/bin/machinfo |grep 'Number of CPUs'")
@@ -1200,28 +1191,24 @@ class HPUX(Hardware):
                     #If hyperthreading is active divide cores by 2
                     rc, out, err = module.run_command("/usr/sbin/psrset |grep LCPU")
                     data = re.sub(' +',' ',out).strip().split(' ')
-                    if len(data) == 1:
-                        hyperthreading = 'OFF'
-                    else:
-                        hyperthreading = data[1]
+                    hyperthreading = 'OFF' if len(data) == 1 else data[1]
                     rc, out, err = module.run_command("/usr/contrib/bin/machinfo |grep logical")
                     data = out.strip().split(" ")
                     if hyperthreading == 'ON':
                         self.facts['processor_cores'] = int(data[0])/2
+                    elif len(data) == 1:
+                        self.facts['processor_cores'] = self.facts['processor_count']
                     else:
-                        if len(data) == 1:
-                            self.facts['processor_cores'] = self.facts['processor_count']
-                        else:
-                            self.facts['processor_cores'] = int(data[0])
+                        self.facts['processor_cores'] = int(data[0])
                     rc, out, err = module.run_command("/usr/contrib/bin/machinfo |grep Intel |cut -d' ' -f4-")
-                    self.facts['processor'] = out.strip()
                 else:
                     rc, out, err = module.run_command("/usr/contrib/bin/machinfo |egrep 'socket[s]?$' | tail -1")
                     self.facts['processor_count'] = int(out.strip().split(" ")[0])
                     rc, out, err = module.run_command("/usr/contrib/bin/machinfo |grep -e '[0-9] core' |tail -1")
                     self.facts['processor_cores'] = int(out.strip().split(" ")[0])
                     rc, out, err = module.run_command("/usr/contrib/bin/machinfo |grep Intel")
-                    self.facts['processor'] = out.strip()
+
+                self.facts['processor'] = out.strip()
 
     def get_memory_facts(self):
         pagesize = 4096
@@ -1239,9 +1226,11 @@ class HPUX(Hardware):
         rc, out, err = module.run_command("/usr/sbin/swapinfo -m -d -f -q")
         self.facts['swaptotal_mb'] = int(out.strip())
         rc, out, err = module.run_command("/usr/sbin/swapinfo -m -d -f |egrep '^dev|^fs'")
-        swap = 0
-        for line in out.strip().split('\n'):
-            swap += int(re.sub(' +',' ',line).split(' ')[3].strip())
+        swap = sum(
+            int(re.sub(' +', ' ', line).split(' ')[3].strip())
+            for line in out.strip().split('\n')
+        )
+
         self.facts['swapfree_mb'] = swap
 
     def get_hw_facts(self):
@@ -1278,8 +1267,8 @@ class Darwin(Hardware):
     def get_sysctl(self):
         rc, out, err = module.run_command(["/usr/sbin/sysctl", "hw", "machdep", "kern"])
         if rc != 0:
-            return dict()
-        sysctl = dict()
+            return {}
+        sysctl = {}
         for line in out.splitlines():
             if line.rstrip("\n"):
                 (key, value) = re.split(' = |: ', line, maxsplit=1)

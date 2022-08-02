@@ -33,13 +33,15 @@ from apiexceptions import APIException
 class APICannotCheckPlugin(APIException):
     def __init__(self, plugin_file):
         super(APICannotCheckPlugin, self).__init__(
-            message="Cannot check the given plugin: {}".format(plugin_file))
+            message=f"Cannot check the given plugin: {plugin_file}"
+        )
 
 
 class APIPluginFileNotFound(APIException):
     def __init__(self, plugin_file):
         super(APIPluginFileNotFound, self).__init__(
-            message="Plugin File not found: {}".format(plugin_file))
+            message=f"Plugin File not found: {plugin_file}"
+        )
 
 
 class APIPluginListCannotBeLoaded(APIException):
@@ -51,7 +53,8 @@ class APIPluginListCannotBeLoaded(APIException):
 class APIPluginHeaderNotValid(APIException):
     def __init__(self, msg=""):
         super(APIPluginHeaderNotValid, self).__init__(
-            message="Invalid plugin header: {}".format(msg))
+            message=f"Invalid plugin header: {msg}"
+        )
 
 
 class APIPluginHeaderNotFound(APIException):
@@ -69,13 +72,15 @@ class APIPluginInvalidFile(APIException):
 class APIPluginFileWithErrors(APIException):
     def __init__(self, error_summary):
         super(APIPluginFileWithErrors, self).__init__(
-            message="Plugin with errors:\n{}".format(error_summary))
+            message=f"Plugin with errors:\n{error_summary}"
+        )
 
 
 class APICannotUploadPlugin(APIException):
     def __init__(self, error_summary):
         super(APICannotUploadPlugin, self).__init__(
-            message="Cannot upload the given plugin: {}".format(error_summary))
+            message=f"Cannot upload the given plugin: {error_summary}"
+        )
 
 
 class APICannotSavePlugin(APIException):
@@ -100,7 +105,8 @@ class APICannotSetSensorPlugins(APIException):
 class APIInvalidPlugin(APIException):
     def __init__(self, error_summary):
         super(APIInvalidPlugin, self).__init__(
-            message="Invalid plugin error: {}".format(error_summary))
+            message=f"Invalid plugin error: {error_summary}"
+        )
 
 
 class APICannotBeRemoved(APIException):

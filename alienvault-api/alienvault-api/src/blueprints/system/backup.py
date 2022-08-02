@@ -82,10 +82,14 @@ def get_system_backup_list(system_id):
     success, backup_list = get_backup_list(system_id=system_id,
                                            backup_type=backup_type,
                                            no_cache=no_cache)
-    if not success:
-        return make_error("Error getting backup list. Please check the system is reachable", 500)
-
-    return make_ok(backups=backup_list)
+    return (
+        make_ok(backups=backup_list)
+        if success
+        else make_error(
+            "Error getting backup list. Please check the system is reachable",
+            500,
+        )
+    )
 
 
 @blueprint.route('/<system_id>/backup/<backup_name>', methods=['GET'])
@@ -146,7 +150,8 @@ def delete_system_backups(system_id):
                                   backup_type=backup_type,
                                   backup_list=backup_list)
 
-    if not success:
-        return make_error("Error deleting backups: %s" % msg, 500)
-
-    return make_ok()
+    return (
+        make_ok()
+        if success
+        else make_error(f"Error deleting backups: {msg}", 500)
+    )

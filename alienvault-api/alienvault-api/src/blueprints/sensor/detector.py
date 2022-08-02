@@ -69,7 +69,7 @@ def bp_get_sensor_plugins_detector_enabled(sensor_id):
     # Now call the ansible module to obtain the [sensor]/iface
     (success, data) = get_sensor_detectors(sensor_ip)
     if not success:
-        current_app.logger.error("detector: get_sensor_detector: %s" % str(data))
+        current_app.logger.error(f"detector: get_sensor_detector: {str(data)}")
         return make_error("Error getting sensor plugins", 500)
 
     # Now format the list by a dict which key is the sensor_id and the value if the list of ifaces
@@ -99,7 +99,7 @@ def bp_put_sensor_plugins_detector_enabled(sensor_id):
 
     (success, data) = set_sensor_detectors(sensor_ip, plugins)
     if not success:
-        current_app.logger.error("detector: put_sensor_detector error %s" % data)
+        current_app.logger.error(f"detector: put_sensor_detector error {data}")
         return make_error("Error setting sensor detector plugins", 500)
 
     # Now launch reconfig task

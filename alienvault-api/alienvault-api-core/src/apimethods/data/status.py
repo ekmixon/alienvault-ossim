@@ -133,14 +133,11 @@ def _format_feed_auto_updates(message, additional_info):
     for system_ip in sorted_result_ips:
         update_data = update_results[system_ip]
         name_success, name = db_get_hostname(update_data['system_id'])
-        updated_ips += '* {} ({}) on {} UTC\n'.format(name if name_success else system_name,
-                                                      system_ip,
-                                                      update_data['updated_at'])
+        updated_ips += f"* {name if name_success else system_name} ({system_ip}) on {update_data['updated_at']} UTC\n"
+
         if not update_data['result']:
-            failed_ips += '* {} ({}) on {} - {} UTC\n'.format(name if name_success else system_name,
-                                                              system_ip,
-                                                              update_data['updated_at'],
-                                                              update_data['message'])
+            failed_ips += f"* {name if name_success else system_name} ({system_ip}) on {update_data['updated_at']} - {update_data['message']} UTC\n"
+
             # replace the default with failed date of last update attempt.
             failed_date = update_data['updated_at']
 
@@ -157,9 +154,13 @@ def _format_system_name(message, additional_info):
     """
     name_success, name = db_get_hostname(additional_info['system_id'])
 
-    message['message_title'] = message['message_title'].replace('SYSTEM_NAME', 'Unknown' if not name_success else name)
-    message['message_description'] = message['message_description'].replace('SYSTEM_NAME',
-                                                                            'Unknown' if not name_success else name)
+    message['message_title'] = message['message_title'].replace(
+        'SYSTEM_NAME', name if name_success else 'Unknown'
+    )
+
+    message['message_description'] = message['message_description'].replace(
+        'SYSTEM_NAME', name if name_success else 'Unknown'
+    )
 
 
 def format_messages(messages):
@@ -183,7 +184,7 @@ def format_messages(messages):
         # First special case for message_id
         additional_info = message.get('additional_info', None)
         if additional_info is not None:
-            for key in [x for x in additional_info.keys() if x in cases.keys()]:
+            for key in [x for x in additional_info.keys() if x in cases]:
                 cases[key](message=message, additional_info=additional_info)
         # The message_creation is a datetime.datetime object
         message['message_description'] = message['message_description'].replace('TIMESTAMP',
@@ -228,8 +229,6 @@ def get_status_messages(component_id=None,
                                                 login_user, is_admin)
     if not success:
         return False, "Couldn't retrieve status messages from the database"
-    if not success:
-        return False, "Can't format message"
     format_messages(data['messages'])
 
     return True, {'messages': data['messages'], 'total': data['total']}
@@ -274,11 +273,11 @@ def load_external_messages_on_db(messages):
         message_list.append(message)
     success = True
     data = ""
-    if len(message_list) > 0:
+    if message_list:
         success, data = load_mcserver_messages(message_list)
     success_remove = True
     data_remove = ""
-    if len(messages_to_be_removed) > 0:
+    if messages_to_be_removed:
         success_remove, data_remove = delete_messages(messages_to_be_removed)
     return ((success and success_remove), {'loaded': data, 'removed': data_remove})
 

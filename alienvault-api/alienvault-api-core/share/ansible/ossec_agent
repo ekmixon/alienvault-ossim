@@ -105,24 +105,18 @@ def build_cmd(params):
     cmd = params.get('command')
     args = ''
     for key in params.iterkeys():
-        if key == 'command':
-            continue
-        else:
-            if params.get(key) is not None:
-                req = REQUIREMENTS[key]
-                for req_key in req.iterkeys():
-                    req_key_list = req[req_key]
-                    for (x, y) in req_key_list:
-                        if x == cmd:
-                            args += y
-                            if params.get(key) is not None and (params.get(key) not in ['true', 'false']):
-                                args += ' ' + params.get(key)
-                            break
+        if key != 'command' and params.get(key) is not None:
+            req = REQUIREMENTS[key]
+            for req_key in req.iterkeys():
+                req_key_list = req[req_key]
+                for x, y in req_key_list:
+                    if x == cmd:
+                        args += y
+                        if params.get(key) is not None and (params.get(key) not in ['true', 'false']):
+                            args += f' {params.get(key)}'
+                        break
 
-    if args == '':
-        return None
-
-    return args
+    return None if args == '' else args
 
 
 def main():

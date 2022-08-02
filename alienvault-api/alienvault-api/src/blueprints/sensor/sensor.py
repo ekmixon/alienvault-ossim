@@ -58,9 +58,11 @@ blueprint = Blueprint(__name__, __name__)
 @logged_permission.require(http_exception=401)
 def get_sensors():
     ret, sensor_data = get_all_systems_with_ping_info(system_type='Sensor')
-    if not ret:
-        return make_error("Error retrieving the list of reachable sensors", 500)
-    return make_ok(sensors=dict(sensor_data))
+    return (
+        make_ok(sensors=dict(sensor_data))
+        if ret
+        else make_error("Error retrieving the list of reachable sensors", 500)
+    )
 
 
 @blueprint.route('/<sensor_id>', methods=['GET'])
@@ -99,7 +101,7 @@ def set_sensor_network(sensor_id):
     netlist = request.args.get('nets').split(",")
     (ret, admin_ip) = get_sensor_ip_from_sensor_id(sensor_id)
     if not ret:
-        current_app.logger.error("sensor: auth_sensor error: " + str(admin_ip))
+        current_app.logger.error(f"sensor: auth_sensor error: {str(admin_ip)}")
         return make_bad_request(sensor_id)
 
     (success, data) = set_sensor_networks(admin_ip, netlist)
@@ -119,15 +121,14 @@ def set_sensor_network(sensor_id):
 def get_sensor_network(sensor_id):
     (ret, admin_ip) = get_sensor_ip_from_sensor_id(sensor_id)
     if not ret:
-        current_app.logger.error("sensor: auth_sensor error: " + str(admin_ip))
+        current_app.logger.error(f"sensor: auth_sensor error: {str(admin_ip)}")
         return make_bad_request(sensor_id)
 
     (success, data) = get_sensor_networks(admin_ip)
-    if not success:
-        current_app.logger.error("sensor: Can't get  sensor networks for  " + str(sensor_id) + " msg: " + str(data))
-        return make_bad_request(sensor_id)
-    else:
+    if success:
         return make_ok(networks=data)
+    current_app.logger.error("sensor: Can't get  sensor networks for  " + str(sensor_id) + " msg: " + str(data))
+    return make_bad_request(sensor_id)
 
 
 @blueprint.route('/credential/<host_ip>', methods=['GET'])
@@ -145,8 +146,11 @@ def check_credentials(host_ip):
     #                                               request.args.get('pass'), request.args.get('method'))
     success, data = True, "OK"
     if not success:
-        current_app.logger.error("Cannot check host " + str(host_ip) + " credentials; msg: " + str(data))
-        abort(500, "Cannot check host " + str(host_ip) + " credentials; msg: " + str(data))
+        current_app.logger.error(
+            f"Cannot check host {str(host_ip)} credentials; msg: {data}"
+        )
+
+        abort(500, f"Cannot check host {str(host_ip)} credentials; msg: {data}")
 
     return make_ok(result=data)
 
@@ -159,15 +163,14 @@ def check_credentials(host_ip):
 def get_ossec_rules_filenames(sensor_id):
     (ret, admin_ip) = get_sensor_ip_from_sensor_id(sensor_id)
     if not ret:
-        current_app.logger.error("sensor: auth_sensor error: " + str(admin_ip))
+        current_app.logger.error(f"sensor: auth_sensor error: {str(admin_ip)}")
         return make_bad_request(sensor_id)
 
     (success, data) = get_ossec_rule_filenames(admin_ip)
-    if not success:
-        current_app.logger.error("sensor: Can't get  sensor networks for  " + str(sensor_id) + " msg: " + str(data))
-        return make_bad_request(sensor_id)
-    else:
+    if success:
         return make_ok(rules=data)
+    current_app.logger.error("sensor: Can't get  sensor networks for  " + str(sensor_id) + " msg: " + str(data))
+    return make_bad_request(sensor_id)
         
 @blueprint.route('/<sensor_id>/service_status', methods=['GET'])
 @document_using('static/apidocs/sensor.html')
@@ -175,8 +178,7 @@ def get_ossec_rules_filenames(sensor_id):
 @accepted_url({'sensor_id': {'type': UUID, 'values': ['local']}})
 def get_service_status(sensor_id):
     (success, data) = get_service_status_by_id(sensor_id)
-    if not success:
-        current_app.logger.error("sensor: Can't get services status " + str(sensor_id) + " msg: " + str(data))
-        return make_bad_request(sensor_id)
-    else:
+    if success:
         return make_ok(**data)
+    current_app.logger.error("sensor: Can't get services status " + str(sensor_id) + " msg: " + str(data))
+    return make_bad_request(sensor_id)

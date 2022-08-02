@@ -49,11 +49,9 @@ def _get_cache(namespace=None, expire=600):
     if namespace is None:
         namespace = "AlienvaultAPI"
 
-    cache = SimpleCache(limit=1000,
-                        expire=expire,
-                        hashkeys=True,
-                        namespace=namespace)
-    return cache
+    return SimpleCache(
+        limit=1000, expire=expire, hashkeys=True, namespace=namespace
+    )
 
 
 def flush_cache(namespace=None):

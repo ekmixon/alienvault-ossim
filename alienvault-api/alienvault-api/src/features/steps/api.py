@@ -123,8 +123,13 @@ def given_ossim_login (context,url):
 
 @behave.given('I generate a random string with len "{len_string}" and store in vault key "{vault_key}"')
 @dereference_step_parameters_and_data
-def given_gen_rand_string (context,len_string,vault_key):
-  context.alienvault[vault_key] = "".join([random.choice(string.ascii_letters + string.digits) for n in xrange(int(len_string))])
+def given_gen_rand_string(context,len_string,vault_key):
+    context.alienvault[vault_key] = "".join(
+        [
+            random.choice(string.ascii_letters + string.digits)
+            for _ in xrange(int(len_string))
+        ]
+    )
 
 
 @behave.given('I clear the cookies')
@@ -135,10 +140,16 @@ def given_clear_cookies (context):
 
 @behave.given('I generate a non-existent username with len "{len_string}" and store in vault key "{vault_key}"')
 @dereference_step_parameters_and_data
-def given_random_username (context,len_string,vault_key):
+def given_random_username(context,len_string,vault_key):
     fend = True
     while fend:
-        tempuser =  "".join([random.choice(string.ascii_letters + string.digits) for n in xrange(int(len_string))])
+        tempuser = "".join(
+            [
+                random.choice(string.ascii_letters + string.digits)
+                for _ in xrange(int(len_string))
+            ]
+        )
+
         try:
             result_set = db.session.query(Users).filter (Users.login == tempuser).one()
         except NoResultFound:
@@ -149,7 +160,7 @@ def given_random_username (context,len_string,vault_key):
 @behave.then('I print request result')
 @dereference_step_parameters_and_data
 def then_print_request(context):
-    print("RESULT: %s" % context.result.getvalue())
+    print(f"RESULT: {context.result.getvalue()}")
 
 
 @behave.then ('JSON response has key "{key}" and value equals to string "{s}"')
@@ -161,27 +172,30 @@ def then_json_has_key_with_string_value(context,key,s):
         assert obj.get(path) != None,"Bad key"
         obj = obj.get(path)
 
-    assert str(obj) == str(s), "JSON %s:  Item [%s] = %s not found" % (context.result.getvalue(),key,s)
+    assert str(obj) == str(
+        s
+    ), f"JSON {context.result.getvalue()}:  Item [{key}] = {s} not found"
 
 @behave.then ('JSON response has key "{key_path}"')
-def then_json_has_key (context,key_path):
+def then_json_has_key(context,key_path):
     """ 
     For the momemt, the key path doesn't support embebed "."
     """
     j = json.loads (context.result.getvalue())
     obj = j
     for path in key_path.split ("."):
-        assert obj.get(path) != None, "JSON %s has no key %s" % (context.result.getvalue(),key_path)
+        assert (
+            obj.get(path) != None
+        ), f"JSON {context.result.getvalue()} has no key {key_path}"
+
         obj = obj.get(path)
 
 @behave.given(u'I make url with paths and store it in variable "{var_name}"')
 @resolve_table_vars
-def when_make_url (context,var_name):
+def when_make_url(context,var_name):
     assert hasattr(context,'table'),"This step need a table with url parts"
     assert hasattr(context,'resolved_table'),"Context.resovled_table missing"
-    urlpath = []
-    for row in context.resolved_table:
-        urlpath.append(row[0])
+    urlpath = [row[0] for row in context.resolved_table]
     context.alienvault[var_name] = "/".join([str(x) for x in urlpath])
 
 
@@ -238,13 +252,15 @@ def then_store_var_from_result(context,var_key,var):
 @behave.then(u'I verify the job with job_id in variable "{var_jobid}" has type "{var_task_type}" after wait "{var_wait}" seconds')
 def then_verify_job_with_var_id(context, var_jobid,var_task_type,var_wait):
     jid = context.alienvault.get (var_jobid)
-    assert jid != None, "Bad job_id %s" % var_jobid
+    assert jid != None, f"Bad job_id {var_jobid}"
     # This is a celery.events.Event
     #wait 
     time.sleep(float(var_wait))
     ev = CeleryManager.get_job_status (jid)
     assert ev !=None, "No status for task %s in celery_job"
-    assert ev['type'] == var_task_type, "Bad type  for task id: %s  Real: %s Must be:%s" % (var_jobid,ev['type'],var_task_type)
+    assert (
+        ev['type'] == var_task_type
+    ), f"Bad type  for task id: {var_jobid}  Real: {ev['type']} Must be:{var_task_type}"
 
 
 @behave.given(u'I generate a random uuid and store in variable "{var_uuid}"')

@@ -44,7 +44,7 @@ def add_server(server_ip, password):
     Add a new system.
     """
     if not is_valid_ipv4(server_ip):
-        return False, "Invalid IP format: %s" % server_ip
+        return False, f"Invalid IP format: {server_ip}"
     (success, local_system_id) = get_system_id_from_local()
     if not success:
         return success, "Error retrieving the local system id"
@@ -78,14 +78,22 @@ def get_base_path_from_server_id(server_id):
 
     if server_id == 'local':
         rt, system_id = get_system_id_from_local()
-        if not rt:
-            return False, "Can't retrieve the system id"
-        return True, get_base_path_from_system_id(system_id)
+        return (
+            (True, get_base_path_from_system_id(system_id))
+            if rt
+            else (False, "Can't retrieve the system id")
+        )
 
     rt, system_id = get_system_id_from_server_id(server_id)
-    if not rt:
-        return False, "Can't retrieve the system id for server id %s: %s" % (server_id, system_id)
-    return True, get_base_path_from_system_id(system_id)
+    return (
+        (True, get_base_path_from_system_id(system_id))
+        if rt
+        else (
+            False,
+            "Can't retrieve the system id for server id %s: %s"
+            % (server_id, system_id),
+        )
+    )
 
 
 def apimethod_run_nfsen_reconfig(server_id):
@@ -94,6 +102,11 @@ def apimethod_run_nfsen_reconfig(server_id):
       server_id(str): the server uuid or local
     """
     success, system_ip = get_server_ip_from_server_id(server_id)
-    if not success:
-        return False, "Cannot retrieve the system ip from a the given server id: <%s>" % str(system_ip)
-    return ansible_nfsen_reconfigure(system_ip)
+    return (
+        ansible_nfsen_reconfigure(system_ip)
+        if success
+        else (
+            False,
+            f"Cannot retrieve the system ip from a the given server id: <{str(system_ip)}>",
+        )
+    )

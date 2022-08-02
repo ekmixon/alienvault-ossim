@@ -55,8 +55,7 @@ def set_sensor_context(sensor_id, context):
         return (False, system_ip)
 
     # Set av_config values and apply new configuration
-    set_values = {}
-    set_values['sensor_sensor_ctx'] = context
+    set_values = {'sensor_sensor_ctx': context}
     (success, data) = set_av_config(system_ip=system_ip,
                                     path_dict=set_values)
     if not success:
@@ -111,9 +110,11 @@ def apimethod_add_sensor(sensor_id, password, ctx):
 def get_base_path_from_sensor_id(sensor_id):
     if sensor_id == 'local':
         rt, system_id = get_system_id_from_local()
-        if not rt:
-            return False, "Can't retrieve the system id"
-        return True, get_base_path_from_system_id(system_id)
+        return (
+            (True, get_base_path_from_system_id(system_id))
+            if rt
+            else (False, "Can't retrieve the system id")
+        )
 
     # rt, system_id = get_system_id_from_sensor_id(sensor_id)
     # if not rt:
@@ -125,9 +126,11 @@ def get_base_path_from_sensor_id(sensor_id):
 @use_cache(namespace="sensor_plugins")
 def get_plugins_from_yaml(sensor_id, no_cache=False):
     (rt, admin_ip) = get_sensor_ip_from_sensor_id(sensor_id)
-    if not rt:
-        return False, "Can't retrieve the system id"
-    return get_sensor_detectors_from_yaml(admin_ip)
+    return (
+        get_sensor_detectors_from_yaml(admin_ip)
+        if rt
+        else (False, "Can't retrieve the system id")
+    )
 
 
 def get_service_status_by_id(sensor_id):
@@ -135,10 +138,7 @@ def get_service_status_by_id(sensor_id):
     Return a list of processes with their statuses (suricata, prads and ossec)
     """
     (success, ip) = get_sensor_ip_from_sensor_id(sensor_id)
-    if not success:
-        return False, ip
-
-    return get_service_status_by_ip(ip)
+    return get_service_status_by_ip(ip) if success else (False, ip)
 
 
 def get_plugin_package_info(sensor_id):
@@ -147,7 +147,4 @@ def get_plugin_package_info(sensor_id):
         sensor with id sensor_id
     """
     (success, ip) = get_sensor_ip_from_sensor_id(sensor_id)
-    if success:
-        return ans_get_plugin_package_info(ip)
-    else:
-        return (False, ip)
+    return ans_get_plugin_package_info(ip) if success else (False, ip)

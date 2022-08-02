@@ -109,13 +109,13 @@ class ErrorCodes(object):
         try:
             return ErrorCodes.ERROR_CODE_MAP_STR[error_code]
         except ValueError:
-            return ErrorCodes.ERROR_CODE_MAP_STR[ErrorCodes.EXCEPTION] + " Invalid Error Code"
+            return f"{ErrorCodes.ERROR_CODE_MAP_STR[ErrorCodes.EXCEPTION]} Invalid Error Code"
 
     @staticmethod
     def get_str_on_exception(error_code, exception):
         """Returns the error code string
         """
-        return ErrorCodes.get_str(error_code) + " Exception: %s" % exception
+        return ErrorCodes.get_str(error_code) + f" Exception: {exception}"
 
     @staticmethod
     def get_detected_error_obj(code, msg_extra):
@@ -131,9 +131,12 @@ class DetectedError():
         self.__error_extra = extra_msg
 
     def get_dict(self):
-        errod_dic = {"code": self.__error_code,
-                      "description": "{0} - {1}".format(self.__error_msg, self.__error_extra)}
-        return errod_dic
+        return {
+            "code": self.__error_code,
+            "description": "{0} - {1}".format(
+                self.__error_msg, self.__error_extra
+            ),
+        }
 
     def __repr__(self):
         return str(self.get_dict())

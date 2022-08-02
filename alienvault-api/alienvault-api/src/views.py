@@ -30,6 +30,7 @@
     Views config file
 """
 
+
 from api import app
 
 # auth
@@ -87,53 +88,82 @@ from api.blueprints.plugin import plugin
 from api.blueprints.central_console import central_console
 
 API_VERSION = "1.0"
-API_URL_BEGIN = "/av/api/%s/" % API_VERSION
+API_URL_BEGIN = f"/av/api/{API_VERSION}/"
 
 # auth
-app.register_blueprint(auth.blueprint, url_prefix=API_URL_BEGIN + 'auth')
+app.register_blueprint(auth.blueprint, url_prefix=f'{API_URL_BEGIN}auth')
 
 # sensor
-app.register_blueprint(sensor.blueprint, url_prefix=API_URL_BEGIN + 'sensor')
-app.register_blueprint(interfaces.blueprint, url_prefix=API_URL_BEGIN + 'sensor')
-app.register_blueprint(ossec_win_deploy.blueprint, url_prefix=API_URL_BEGIN + 'sensor')
-app.register_blueprint(iftraffic.blueprint, url_prefix=API_URL_BEGIN + 'sensor')
-app.register_blueprint(detector.blueprint, url_prefix=API_URL_BEGIN + 'sensor')
-app.register_blueprint(ossec_agent.blueprint, url_prefix=API_URL_BEGIN + 'sensor')
-app.register_blueprint(ossec.blueprint, url_prefix=API_URL_BEGIN + 'sensor')
-app.register_blueprint(ossec_configuration.blueprint, url_prefix=API_URL_BEGIN + 'sensor')
+app.register_blueprint(sensor.blueprint, url_prefix=f'{API_URL_BEGIN}sensor')
+app.register_blueprint(
+    interfaces.blueprint, url_prefix=f'{API_URL_BEGIN}sensor'
+)
+
+app.register_blueprint(
+    ossec_win_deploy.blueprint, url_prefix=f'{API_URL_BEGIN}sensor'
+)
+
+app.register_blueprint(
+    iftraffic.blueprint, url_prefix=f'{API_URL_BEGIN}sensor'
+)
+
+app.register_blueprint(detector.blueprint, url_prefix=f'{API_URL_BEGIN}sensor')
+app.register_blueprint(
+    ossec_agent.blueprint, url_prefix=f'{API_URL_BEGIN}sensor'
+)
+
+app.register_blueprint(ossec.blueprint, url_prefix=f'{API_URL_BEGIN}sensor')
+app.register_blueprint(
+    ossec_configuration.blueprint, url_prefix=f'{API_URL_BEGIN}sensor'
+)
+
 
 # server
-app.register_blueprint(server.blueprint, url_prefix=API_URL_BEGIN + 'server')
+app.register_blueprint(server.blueprint, url_prefix=f'{API_URL_BEGIN}server')
 
 # system
-app.register_blueprint(system.blueprint, url_prefix=API_URL_BEGIN + 'system')
-app.register_blueprint(backup.blueprint, url_prefix=API_URL_BEGIN + 'system')
-app.register_blueprint(doctor.blueprint, url_prefix=API_URL_BEGIN + 'system')
-app.register_blueprint(email.blueprint, url_prefix=API_URL_BEGIN + 'system')
-app.register_blueprint(network.blueprint, url_prefix=API_URL_BEGIN + 'system')
-app.register_blueprint(avlicense.blueprint, url_prefix=API_URL_BEGIN + 'system')
-app.register_blueprint(config.blueprint, url_prefix=API_URL_BEGIN + 'system')
-app.register_blueprint(otx.blueprint, url_prefix=API_URL_BEGIN + 'system')
-app.register_blueprint(support.blueprint, url_prefix=API_URL_BEGIN + 'system')
+app.register_blueprint(system.blueprint, url_prefix=f'{API_URL_BEGIN}system')
+app.register_blueprint(backup.blueprint, url_prefix=f'{API_URL_BEGIN}system')
+app.register_blueprint(doctor.blueprint, url_prefix=f'{API_URL_BEGIN}system')
+app.register_blueprint(email.blueprint, url_prefix=f'{API_URL_BEGIN}system')
+app.register_blueprint(network.blueprint, url_prefix=f'{API_URL_BEGIN}system')
+app.register_blueprint(
+    avlicense.blueprint, url_prefix=f'{API_URL_BEGIN}system'
+)
+
+app.register_blueprint(config.blueprint, url_prefix=f'{API_URL_BEGIN}system')
+app.register_blueprint(otx.blueprint, url_prefix=f'{API_URL_BEGIN}system')
+app.register_blueprint(support.blueprint, url_prefix=f'{API_URL_BEGIN}system')
 
 # facts
-app.register_blueprint(system_status.blueprint, url_prefix=API_URL_BEGIN + 'system')
+app.register_blueprint(
+    system_status.blueprint, url_prefix=f'{API_URL_BEGIN}system'
+)
+
 
 # data
-app.register_blueprint(status.blueprint, url_prefix=API_URL_BEGIN + 'data/status')
-app.register_blueprint(host.blueprint, url_prefix=API_URL_BEGIN + 'data/host')
+app.register_blueprint(
+    status.blueprint, url_prefix=f'{API_URL_BEGIN}data/status'
+)
+
+app.register_blueprint(host.blueprint, url_prefix=f'{API_URL_BEGIN}data/host')
 
 # jobs
-app.register_blueprint(reconfig.blueprint, url_prefix=API_URL_BEGIN + 'job')
-app.register_blueprint(common.blueprint, url_prefix=API_URL_BEGIN + 'job')
+app.register_blueprint(reconfig.blueprint, url_prefix=f'{API_URL_BEGIN}job')
+app.register_blueprint(common.blueprint, url_prefix=f'{API_URL_BEGIN}job')
 
 # host
-app.register_blueprint(host_config.blueprint, url_prefix=API_URL_BEGIN + 'host')
+app.register_blueprint(
+    host_config.blueprint, url_prefix=f'{API_URL_BEGIN}host'
+)
+
 # apps
-app.register_blueprint(nmap.blueprint, url_prefix=API_URL_BEGIN + 'nmap')
+app.register_blueprint(nmap.blueprint, url_prefix=f'{API_URL_BEGIN}nmap')
 
 # plugin
-app.register_blueprint(plugin.blueprint, url_prefix=API_URL_BEGIN + 'plugin')
+app.register_blueprint(plugin.blueprint, url_prefix=f'{API_URL_BEGIN}plugin')
 
 # central-console
-app.register_blueprint(central_console.blueprint, url_prefix=API_URL_BEGIN + 'central_console')
+app.register_blueprint(
+    central_console.blueprint, url_prefix=f'{API_URL_BEGIN}central_console'
+)

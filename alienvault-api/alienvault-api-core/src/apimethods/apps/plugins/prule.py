@@ -181,15 +181,11 @@ class PluginRule(object):
 
     @staticmethod
     def is_attribute_db_rule_valid_attributes(attr_name):
-        if attr_name not in PluginRule.PLUGIN_DB_RULE_VALID_ATTRS:
-            return False
-        return True
+        return attr_name in PluginRule.PLUGIN_DB_RULE_VALID_ATTRS
 
     @staticmethod
     def is_attribute_wmi_rule_valid_attribute(attr_name):
-        if attr_name not in PluginRule.PLUGIN_WMI_RULE_MANDATORY_FIELDS:
-            return False
-        return True
+        return attr_name in PluginRule.PLUGIN_WMI_RULE_MANDATORY_FIELDS
 
     def append_error(self, code, msg=""):
         """Appends an error to the error list"""
@@ -203,11 +199,10 @@ class PluginRule(object):
         """
         mandatory_fields = self.PLUGIN_RULE_MANDATORY_FIELDS
 
-        if self.__is_database_plugin:
-            if self.__rule_name == "start_query":
-                mandatory_fields = PluginRule.PLUGIN_STARTQUERY_RULE_MANDATORY_FIELDS
+        if self.__is_database_plugin and self.__rule_name == "start_query":
+            mandatory_fields = PluginRule.PLUGIN_STARTQUERY_RULE_MANDATORY_FIELDS
         if self.__is_wmi_plugin:
-            if self.__rule_name == "cmd" or self.__rule_name == "start_cmd":
+            if self.__rule_name in ["cmd", "start_cmd"]:
                 mandatory_fields = PluginRule.PLUGIN_WMI_RULE_MANDATORY_FIELDS
             else:
                 mandatory_fields = PluginRule.PLUGIN_DB_RULE_MANDATORY_FIELDS
@@ -364,10 +359,10 @@ class PluginRule(object):
                                           "Function: {0}".format(func))
 
     def is_idm(self):
-        for key, value in self.__rule_data.iteritems():
-            if key == "event_type" and value == "idm-event":
-                return True
-        return False
+        return any(
+            key == "event_type" and value == "idm-event"
+            for key, value in self.__rule_data.iteritems()
+        )
 
     def check(self):
         """Starts all the checks over the plugin rule

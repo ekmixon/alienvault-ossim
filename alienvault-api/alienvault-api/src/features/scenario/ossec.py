@@ -83,68 +83,67 @@ def get_passlist_scenario1_restore():
 
 
 def put_passfile_scenario1_prepare():
-    result, system_id = get_system_id_from_local()
-    if not result:
-        raise  KeyboardInterrupt()
-    base_path = "/var/alienvault/%s/ossec/" % system_id
-    pass_file = base_path + "agentless/.passlist"
-    pass_file_backup = base_path + "agentless/.passlist.bk"
+        result, system_id = get_system_id_from_local()
+        if not result:
+            raise  KeyboardInterrupt()
+        base_path = f"/var/alienvault/{system_id}/ossec/"
+        pass_file = f"{base_path}agentless/.passlist"
+        pass_file_backup = f"{base_path}agentless/.passlist.bk"
 
-    remotely_backup_file(ossim_setup.get_general_admin_ip(),pass_file,
-                         pass_file_backup)
-    remotely_remove_file(ossim_setup.get_general_admin_ip(), pass_file)
+        remotely_backup_file(ossim_setup.get_general_admin_ip(),pass_file,
+                             pass_file_backup)
+        remotely_remove_file(ossim_setup.get_general_admin_ip(), pass_file)
 
 def put_passfile_scenario1_restore():
-    result, system_id = get_system_id_from_local()
-    if not result:
-        raise  KeyboardInterrupt()
-    base_path = "/var/alienvault/%s/ossec/" % system_id
-    pass_file = base_path + "agentless/.passlist"
-    pass_file_backup = base_path + "agentless/.passlist.bk"
-    remotely_restore_file(ossim_setup.get_general_admin_ip(), pass_file_backup, pass_file)
-    remotely_remove_file(ossim_setup.get_general_admin_ip(), pass_file_backup)
+        result, system_id = get_system_id_from_local()
+        if not result:
+            raise  KeyboardInterrupt()
+        base_path = f"/var/alienvault/{system_id}/ossec/"
+        pass_file = f"{base_path}agentless/.passlist"
+        pass_file_backup = f"{base_path}agentless/.passlist.bk"
+        remotely_restore_file(ossim_setup.get_general_admin_ip(), pass_file_backup, pass_file)
+        remotely_remove_file(ossim_setup.get_general_admin_ip(), pass_file_backup)
 
 
 def put_passfile_scenario2_prepare():
-    raw_file="""root@192.168.1.45|mypasss123|"""
-    result, system_id = get_system_id_from_local()
-    if not result:
-        raise  KeyboardInterrupt()
-    base_path = "/var/alienvault/%s/ossec/" % system_id
-    pass_file = base_path + "agentless/.passlist"
-    pass_file_backup = base_path + "agentless/.passlist.bk"
+        raw_file="""root@192.168.1.45|mypasss123|"""
+        result, system_id = get_system_id_from_local()
+        if not result:
+            raise  KeyboardInterrupt()
+        base_path = f"/var/alienvault/{system_id}/ossec/"
+        pass_file = f"{base_path}agentless/.passlist"
+        pass_file_backup = f"{base_path}agentless/.passlist.bk"
 
-    ossec_pass_file = "/var/ossec/agentless/.passlist"
-    ossec_pass_file_backup = "/var/ossec/agentless/.passlist.bk"
+        ossec_pass_file = "/var/ossec/agentless/.passlist"
+        ossec_pass_file_backup = "/var/ossec/agentless/.passlist.bk"
 
-    remotely_backup_file(ossim_setup.get_general_admin_ip(),pass_file,
-                         pass_file_backup)
-    remotely_remove_file(ossim_setup.get_general_admin_ip(), pass_file)
+        remotely_backup_file(ossim_setup.get_general_admin_ip(),pass_file,
+                             pass_file_backup)
+        remotely_remove_file(ossim_setup.get_general_admin_ip(), pass_file)
 
-    remotely_backup_file(ossim_setup.get_general_admin_ip(),ossec_pass_file,
-                         ossec_pass_file_backup)
-    remotely_remove_file(ossim_setup.get_general_admin_ip(), ossec_pass_file)
+        remotely_backup_file(ossim_setup.get_general_admin_ip(),ossec_pass_file,
+                             ossec_pass_file_backup)
+        remotely_remove_file(ossim_setup.get_general_admin_ip(), ossec_pass_file)
 
-    f = open(pass_file,"w")
-    f.write(raw_file)
-    f.close()
+        with open(pass_file,"w") as f:
+                f.write(raw_file)
 
 
 def put_passfile_scenario2_restore():
-    result, system_id = get_system_id_from_local()
-    if not result:
-        raise  KeyboardInterrupt()
-    base_path = "/var/alienvault/%s/ossec/" % system_id
-    pass_file = base_path + "agentless/.passlist"
-    pass_file_backup = base_path + "agentless/.passlist.bk"
-    remotely_restore_file(ossim_setup.get_general_admin_ip(), pass_file_backup, pass_file)
-    remotely_remove_file(ossim_setup.get_general_admin_ip(), pass_file_backup)
+        result, system_id = get_system_id_from_local()
+        if not result:
+            raise  KeyboardInterrupt()
+        base_path = f"/var/alienvault/{system_id}/ossec/"
+        pass_file = f"{base_path}agentless/.passlist"
+        pass_file_backup = f"{base_path}agentless/.passlist.bk"
+        remotely_restore_file(ossim_setup.get_general_admin_ip(), pass_file_backup, pass_file)
+        remotely_remove_file(ossim_setup.get_general_admin_ip(), pass_file_backup)
 
-    ossec_pass_file = "/var/ossec/agentless/.passlist"
-    ossec_pass_file_backup = "/var/ossec/agentless/.passlist.bk"
+        ossec_pass_file = "/var/ossec/agentless/.passlist"
+        ossec_pass_file_backup = "/var/ossec/agentless/.passlist.bk"
 
-    remotely_restore_file(ossim_setup.get_general_admin_ip(), ossec_pass_file_backup, ossec_pass_file)
-    remotely_remove_file(ossim_setup.get_general_admin_ip(), ossec_pass_file_backup)
+        remotely_restore_file(ossim_setup.get_general_admin_ip(), ossec_pass_file_backup, ossec_pass_file)
+        remotely_remove_file(ossim_setup.get_general_admin_ip(), ossec_pass_file_backup)
 
 
 def empty_ossec_keys_file():

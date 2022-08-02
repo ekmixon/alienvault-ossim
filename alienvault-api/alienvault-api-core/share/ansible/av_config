@@ -142,9 +142,9 @@ av_config_methods = {'general_admin_dns': {'get': 'get_general_admin_dns',
 
 def __get_method(config, operation, path):
     if path not in av_config_methods:
-        return False, "Bad path {}".format(path)
+        return False, f"Bad path {path}"
     if operation not in av_config_methods[path]:
-        return False, "Bad operation {}".format(operation)
+        return False, f"Bad operation {operation}"
 
     try:
         method = getattr(config, av_config_methods[path][operation])
@@ -154,10 +154,7 @@ def __get_method(config, operation, path):
 
 
 def __exists_method(config, path, operation):
-    if getattr(config, av_config_methods[path][operation], None) is None:
-        return False
-    else:
-        return True
+    return getattr(config, av_config_methods[path][operation], None) is not None
 
 
 def __run_module(module):
@@ -208,10 +205,7 @@ def __run_module(module):
 
         result = config.save_ossim_setup_file(abort_on_errors=True,
                                               makebackup=(backup == 'True'))
-        if result[0] != 0:
-            return False, result[1]
-        else:
-            return True, 'OK'
+        return (False, result[1]) if result[0] != 0 else (True, 'OK')
 
 
 def main():
@@ -220,7 +214,7 @@ def main():
             op=dict(required=True, choices=['get', 'set']),
             conffile=dict(default='/etc/ossim/ossim_setup.conf'),
             makebackup=dict(default='True', choices=['True', 'False']),
-            debugfile=dict(),
+            debugfile={},
             general_admin_dns=dict(default=False),
             general_admin_gateway=dict(default=False),
             general_admin_ip=dict(default=False),
@@ -254,9 +248,10 @@ def main():
             vpn_config=dict(default=False),
             ha_ha_role=dict(delfault=False),
             ha_ha_virtual_ip=dict(default=False),
-            ha_ha_other_node_ip=dict(default=False)
+            ha_ha_other_node_ip=dict(default=False),
         )
     )
+
 
     # the path are section/key
     (success, data) = __run_module(module)

@@ -155,7 +155,10 @@ class CommandsParseError(Exception):
         super(CommandsParseError, self).__init__(msg)
 
     def format_commands(self, commands):
-        return '\n'.join('%s %s' % (c, ' '.join(a if a else "''" for a in args.values())) for c, args in commands)
+        return '\n'.join(
+            '%s %s' % (c, ' '.join(a or "''" for a in args.values()))
+            for c, args in commands
+        )
 
 
 class MissingArgument(CommandsParseError):
@@ -252,14 +255,15 @@ class FileNotFound(Exception):
             augeas_path = '/files'
             file_path = ''
             for part in path_parts:
-                augeas_path = augeas_path + '/' + part
+                augeas_path = f'{augeas_path}/{part}'
                 if augeas_instance.match(augeas_path):
-                    file_path = file_path + '/' + part
+                    file_path = f'{file_path}/{part}'
             if file_path:
                 msg = ('Augeas was not able to match any file for given path: %s (in: command=%s params=%s). '
                        '\nClosest path in augeas tree is: %s') % (path, command, params, file_path)
             else:
-                msg = 'Augeas was not able to match any file for given path: %s (in: command=%s params=%s).' % (path, command, params)
+                msg = f'Augeas was not able to match any file for given path: {path} (in: command={command} params={params}).'
+
         msg += ('\n\nYou can check files managed by augeas through "match" command:\n\n'
                 'ansible all -u USERNAME -i INVENTORY_FILE -m augeas -a \'command="match" path="/augeas/files//*" validate_filepath="no"\n\n')
         self.msg = msg
@@ -280,10 +284,19 @@ class AugeasError(Exception):
         for error in augeas_instance.match('/augeas//error'):
             error_type = augeas_instance.get(error)
             if not self.error_type or not error_type or self.error_type == error_type:
-                errors.append([(p, augeas_instance.get(p)) for p in augeas_instance.match(error + '/' + '*')])
+                errors.append(
+                    [
+                        (p, augeas_instance.get(p))
+                        for p in augeas_instance.match(f'{error}/*')
+                    ]
+                )
+
 
         if errors:
-            errors = '\n\n'.join('\n'.join('%s: %s'%(p, v) for p,v in error) for error in errors)
+            errors = '\n\n'.join(
+                '\n'.join(f'{p}: {v}' for p, v in error) for error in errors
+            )
+
             return ('Augeas has reported following problems '
                     ' (it\'s possible that some of them are unrelated to your action):\n\n%s' % errors)
         if self.error_type is not None:
@@ -303,15 +316,16 @@ class PathParseError(AugeasError):
 class SaveError(AugeasError):
 
     def __init__(self, augeas_instance):
-        msg = 'Augeas refused to save changes. %s' % self.format_augeas_errors(augeas_instance)
+        msg = f'Augeas refused to save changes. {self.format_augeas_errors(augeas_instance)}'
+
         super(SaveError, self).__init__(msg)
 
 
 class CommandError(AugeasError):
 
     def __init__(self, command, params, augeas_instance):
-        msg = 'Augeas command execution error (command=%s, params=%s). %s' % (command, params,
-                                                                              self.format_augeas_errors(augeas_instance))
+        msg = f'Augeas command execution error (command={command}, params={params}). {self.format_augeas_errors(augeas_instance)}'
+
         super(CommandError, self).__init__(msg)
 
 
@@ -323,7 +337,7 @@ class SetError(CommandError):
 def validate_path(augeas_instance, path):
     subpath = correct_subpath = ''
     for part in filter(None, path.split('/')):
-        subpath = subpath + '/' + part
+        subpath = f'{subpath}/{part}'
         try:
             augeas_instance.match(subpath)
         except RuntimeError:
@@ -336,20 +350,19 @@ def get_file_for_path(augeas_instance, path):
     filename = None
     # this is safe as all '/' chars in augeas paths are separators
     for part in filter(None, path.split('/')):
-        subpath = subpath + '/' + part
-        if augeas_instance.match(subpath):
-            if not filename:
-                try:
-                    filename = augeas_instance.span(subpath)[0]
-                except ValueError:
-                    pass
+        subpath = f'{subpath}/{part}'
+        if augeas_instance.match(subpath) and not filename:
+            try:
+                filename = augeas_instance.span(subpath)[0]
+            except ValueError:
+                pass
     return filename
 
 
 def execute(augeas_instance, commands, validate_filepath=True):
     # validate paths
     for command, params in commands:
-        if not 'path' in params:
+        if 'path' not in params:
             continue
         path = params['path']
         validate_path(augeas_instance, path)
@@ -381,7 +394,13 @@ def execute(augeas_instance, commands, validate_filepath=True):
                 result = False
         else: # match
             result = [{'label': s, 'value': augeas_instance.get(s)} for s in augeas_instance.match(**params)]
-        results.append((command + ' ' + ' '.join(p if p else '""' for p in params.values()), result))
+        results.append(
+            (
+                f'{command} ' + ' '.join(p or '""' for p in params.values()),
+                result,
+            )
+        )
+
 
     try:
         augeas_instance.save()

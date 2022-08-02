@@ -107,12 +107,11 @@ def apimethod_is_otx_enabled():
     """
     success, value = db_get_config("open_threat_exchange_key")
 
-    if not success:
-        api_log.error("[apimethod_is_otx_enabled] %s" % str(value))
-        return False
-    else:
+    if success:
         #If the token is registered, the otx is enabled
-        return True if value else False
+        return bool(value)
+    api_log.error(f"[apimethod_is_otx_enabled] {str(value)}")
+    return False
 
 
 def apimethod_get_open_threat_exchange_config():
@@ -135,7 +134,7 @@ def apimethod_get_open_threat_exchange_config():
     for result_key, db_key in keys.iteritems():
         success, value = db_get_config(db_key)
         if not success:
-            api_log.error("[apimethod_get_open_threat_exchange_config] %s" % str(value))
+            api_log.error(f"[apimethod_get_open_threat_exchange_config] {str(value)}")
             return False, str(value)
         else:
             if result_key == "contributing":
@@ -160,7 +159,7 @@ def apimethod_get_open_threat_exchange_config():
                 result["key_version"] = "2"
 
         except Exception as err:
-            api_log.error("Cannot check if the OTX Key is valid: %s" % str(err))
+            api_log.error(f"Cannot check if the OTX Key is valid: {str(err)}")
 
     return True, result
 
@@ -184,7 +183,7 @@ def apimethod_remove_otx_account():
     for k in keys:
         success, info = db_set_config(k, "")
         if not success:
-            api_log.error("[apimethod_remove_otx_account] %s" % str(info))
+            api_log.error(f"[apimethod_remove_otx_account] {str(info)}")
             return False, str(info)
 
     #Removing the pulse database
@@ -199,7 +198,7 @@ def apimethod_remove_otx_account():
         del pulse_db
         del pulse_correlation_db
     except Exception as err:
-        api_log.error("[apimethod_remove_otx_account] %s" % str(err))
+        api_log.error(f"[apimethod_remove_otx_account] {str(err)}")
         return False, "Error removing OTX Account: Pulse List Cannot Be removed at this time."
 
     return True, ""
@@ -215,7 +214,7 @@ def apimethod_start_contributing_otx():
     success, info = db_set_config("open_threat_exchange", "yes")
 
     if not success:
-        api_log.error("[apimethod_start_contributing_otx] %s" % str(info))
+        api_log.error(f"[apimethod_start_contributing_otx] {str(info)}")
         return False, str(info)
 
     return True, ""
@@ -231,7 +230,7 @@ def apimethod_stop_contributing_otx():
     success, info = db_set_config("open_threat_exchange", "no")
 
     if not success:
-        api_log.error("[apimethod_stop_contributing_otx] %s" % str(info))
+        api_log.error(f"[apimethod_stop_contributing_otx] {str(info)}")
         return False, str(info)
 
     return True, ""
@@ -259,22 +258,25 @@ def apimethod_get_pulse_list(page=0, page_row=10):
         p_vals = pulse_db.get_range(start, end, 'desc')
         del pulse_db
 
-        pulses = []
-        for p in p_vals:
-            pulses.append({"id": p.get('id'),
-                           "name": p.get('name'),
-                           "author_name": p.get('author_name'),
-                           "created": p.get('created'),
-                           "description": p.get('description'),
-                           "modified": p.get('modified'),
-                           "tags": p.get('tags')})
+        pulses = [
+            {
+                "id": p.get('id'),
+                "name": p.get('name'),
+                "author_name": p.get('author_name'),
+                "created": p.get('created'),
+                "description": p.get('description'),
+                "modified": p.get('modified'),
+                "tags": p.get('tags'),
+            }
+            for p in p_vals
+        ]
 
         pulse_list["total"] = len(p_keys)
         pulse_list["pulses"] = pulses
 
     except Exception as err:
-        api_log.error("[apimethod_get_pulse_list] %s" % str(err))
-        return False, "Error retrieving the Pulse List: %s" % str(err)
+        api_log.error(f"[apimethod_get_pulse_list] {str(err)}")
+        return False, f"Error retrieving the Pulse List: {str(err)}"
 
     return True, pulse_list
 
@@ -347,13 +349,13 @@ def apimethod_get_otx_pulse_stats_summary(user):
         stats['alarms'] = db_get_otx_alarms(user)
         stats['events'] = db_get_otx_events(user)
     except Exception as err:
-        api_log.error("[apimethod_get_otx_pulse_stats] %s" % str(err))
-        return False, "Error retrieving the Pulse Stats: %s" % str(err)
+        api_log.error(f"[apimethod_get_otx_pulse_stats] {str(err)}")
+        return False, f"Error retrieving the Pulse Stats: {str(err)}"
 
     success, last_updated = db_get_config("open_threat_exchange_latest_update")
     if not success:
-        api_log.error("[apimethod_get_otx_pulse_stats] %s" % str(last_updated))
-        return False, "Error retrieving the Pulse Stats: %s" % str(last_updated)
+        api_log.error(f"[apimethod_get_otx_pulse_stats] {str(last_updated)}")
+        return False, f"Error retrieving the Pulse Stats: {str(last_updated)}"
     stats['last_updated'] = last_updated
 
     return True, stats
@@ -386,14 +388,17 @@ def apimethod_get_otx_pulse_stats_top(user_dic, top, day_range):
         for pulse_id, top_data in top_list.iteritems():
             success, p_detail = apimethod_get_pulse_detail(pulse_id)
             if not success:
-                api_log.error("[apimethod_get_otx_pulse_stats_top] Cannot Retrieve Pulse Detail for pulse %s: %s" % (str(pulse_id), str(p_detail)))
+                api_log.error(
+                    f"[apimethod_get_otx_pulse_stats_top] Cannot Retrieve Pulse Detail for pulse {str(pulse_id)}: {str(p_detail)}"
+                )
+
                 top_data['name'] = 'No information available. You are no longer subscribed to this pulse.'
             else:
                 top_data['name'] = p_detail.get('name')
 
     except Exception as err:
-        api_log.error("[apimethod_get_otx_pulse_stats_top] %s" % str(err))
-        return False, "Error retrieving the Top Pulses: %s" % str(err)
+        api_log.error(f"[apimethod_get_otx_pulse_stats_top] {str(err)}")
+        return False, f"Error retrieving the Top Pulses: {str(err)}"
 
     return True, top_list
 
@@ -425,8 +430,8 @@ def apimethod_get_otx_pulse_stats_event_trend(user_dic, pulse_id='', day_range=0
         trend_list = db_get_otx_event_trend(user, pulse_id, date_from, date_to, offset)
 
     except Exception as err:
-        api_log.error("[apimethod_get_otx_pulse_stats_event_trend] %s" % str(err))
-        return False, "Error retrieving the events from Pulses: %s" % str(err)
+        api_log.error(f"[apimethod_get_otx_pulse_stats_event_trend] {str(err)}")
+        return False, f"Error retrieving the events from Pulses: {str(err)}"
 
     return True, trend_list
 
@@ -449,21 +454,21 @@ def apimethod_get_otx_pulse_stats_event_top(user_dic, top, day_range):
         #First we get the N top pulses
         success, top = apimethod_get_otx_pulse_stats_top(user_dic, top, day_range)
         if not success:
-            api_log.error("[apimethod_get_otx_pulse_stats_event_top] %s" % str(top))
+            api_log.error(f"[apimethod_get_otx_pulse_stats_event_top] {str(top)}")
             return False, str(top)
 
         #For each pulse, we get the event trend
         for pulse_id, p_data in top.iteritems():
             success, values = apimethod_get_otx_pulse_stats_event_trend(user_dic, pulse_id, day_range)
             if not success:
-                api_log.error("[apimethod_get_otx_pulse_stats_event_top] %s" % str(values))
+                api_log.error(f"[apimethod_get_otx_pulse_stats_event_top] {str(values)}")
                 return False, str(values)
 
             p_data['values'] = values
             top_list[pulse_id] = p_data
 
     except Exception as err:
-        api_log.error("[apimethod_get_otx_pulse_stats_event_top] %s" % str(err))
-        return False, "Error retrieving the events for top Pulses: %s" % str(err)
+        api_log.error(f"[apimethod_get_otx_pulse_stats_event_top] {str(err)}")
+        return False, f"Error retrieving the events for top Pulses: {str(err)}"
 
     return True, top_list

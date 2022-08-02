@@ -122,7 +122,7 @@ def ossec_add_new_agent(sensor_id):
     # Now call the api method to create the new agent - If everything is right it returns the agent id of the new agent
     (success, data) = api_ossec_add_new_agent(sensor_id, agent_name, agent_ip, asset_id)
     if not success:
-        current_app.logger.error("ossec_agent: error creating new agent: " + str(data))
+        current_app.logger.error(f"ossec_agent: error creating new agent: {str(data)}")
         return make_error(data, 500)
 
     # Now we get the agent detail
@@ -132,10 +132,7 @@ def ossec_add_new_agent(sensor_id):
     except APIException as e:
         return make_error_from_exception(e)
 
-    if success:
-        return make_ok(agent_detail=data)
-    else:
-        return make_error(data, 500)
+    return make_ok(agent_detail=data) if success else make_error(data, 500)
 
 
 @blueprint.route('/<sensor_id>/ossec/agent/<agent_id>/link_to_asset', methods=['PUT'])
@@ -154,7 +151,10 @@ def ossec_link_to_asset(sensor_id, agent_id):
     # Now call the api method to link agent with asset
     (success, data) = apimethod_link_agent_to_asset(sensor_id, agent_id, asset_id)
     if not success:
-        current_app.logger.error("HIDS agent: error binding agent with asset: " + str(data))
+        current_app.logger.error(
+            f"HIDS agent: error binding agent with asset: {str(data)}"
+        )
+
         return make_error(data, 500)
 
     return make_ok(messages=data)
@@ -177,7 +177,7 @@ def ossec_delete_agent(sensor_id, agent_id):
     # Now call the api method to create the new agent
     (success, data) = api_ossec_delete_agent(sensor_id, agent_id)
     if not success:
-        current_app.logger.error("ossec_agent: error deleting agent: " + str(data))
+        current_app.logger.error(f"ossec_agent: error deleting agent: {str(data)}")
         return make_error(data, 500)
 
     return make_ok(messages=data)
@@ -202,7 +202,10 @@ def ossec_delete_agentless(sensor_id):
     # Now call the api method to create the new agent
     (success, data) = api_ossec_delete_agentless(sensor_id, agent_ip)
     if not success:
-        current_app.logger.error("ossec_agent: error deleting agentless queue: " + str(data))
+        current_app.logger.error(
+            f"ossec_agent: error deleting agentless queue: {str(data)}"
+        )
+
         return make_error(data, 500)
 
     return make_ok(messages=data)
@@ -219,10 +222,7 @@ def get_modified_registry_entries(sensor_id, agent_id):
     """
     # Now call the api method to create the new agent
     (success, data) = apimethod_ossec_get_modified_registry_entries(sensor_id, agent_id)
-    if not success:
-        return make_error(data, 500)
-
-    return make_ok(stdout=data)
+    return make_ok(stdout=data) if success else make_error(data, 500)
 
 
 @blueprint.route('/<sensor_id>/ossec/agent/<agent_id>/key', methods=['GET'])
@@ -237,7 +237,4 @@ def get_ossec_extract_agent_key(sensor_id, agent_id):
         @param agent_id: Agent id. Must be a string that match [0-9]{1,4}
     """
     (result, data) = ossec_extract_agent_key(sensor_id, agent_id)
-    if result:
-        return make_ok(agent_key=data)
-    else:
-        return make_error(data, 500)
+    return make_ok(agent_key=data) if result else make_error(data, 500)

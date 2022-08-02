@@ -63,6 +63,6 @@ class PluginTester(object):
         try:
             data = self.__plugin_file.check()
         except Exception as e:
-            api_log.warning("[PluginTester] Cannot check the plugin %s" % str(e))
+            api_log.warning(f"[PluginTester] Cannot check the plugin {str(e)}")
             raise APICannotCheckPlugin(self.__plugin_file_name)
         return data

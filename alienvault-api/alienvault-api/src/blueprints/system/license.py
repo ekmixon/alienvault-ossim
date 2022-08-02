@@ -58,7 +58,7 @@ def get_license_trial(system_id):
 
     (success, msg) = register_appliance_trial(email, system_id, False)
     if not success:
-        current_app.logger.error("license: get_license_trial error: " + str(msg))
+        current_app.logger.error(f"license: get_license_trial error: {str(msg)}")
         return make_error(msg, 500)
 
     return make_ok()
@@ -79,7 +79,7 @@ def get_license_pro(system_id):
 
     (success, msg) = register_appliance_pro(key, system_id, False)
     if not success:
-        current_app.logger.error("license: get_license_pro error: " + str(msg))
+        current_app.logger.error(f"license: get_license_pro error: {str(msg)}")
         return make_error(msg, 500)
 
     return make_ok()
@@ -97,7 +97,7 @@ def get_license_version(system_id):
 
     (success, msg) = get_current_version(system_id)
     if not success:
-        api_log.error("license: get_license_versions error: " + str(msg))
+        api_log.error(f"license: get_license_versions error: {str(msg)}")
         return make_error("An internet connection is needed in order to activate your version.", 500)
 
     return make_ok(**msg)

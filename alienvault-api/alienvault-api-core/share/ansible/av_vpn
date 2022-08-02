@@ -80,7 +80,7 @@ class AVVpn:
         """
         self.__system_ip = system_ip
         self.__oppath = '/usr/share/easy-rsa'
-        self.__opvars = '%s/vars' % self.__oppath
+        self.__opvars = f'{self.__oppath}/vars'
         self.__opconf = '/etc/openvpn/AVinfraestructure.conf'
         self.__opnodespath = '/etc/openvpn/nodes'
         self.__opccdpath = '/etc/openvpn/ccd'
@@ -88,7 +88,7 @@ class AVVpn:
         self.__server_port = ossim_setup.get_avvpn_config_port()
         self.__proto = 'tcp'
         self.__device = 'tun'
-        self.__ha_enabled = True if ossim_setup.get_ha_ha_heartbeat_start() == 'yes' else False
+        self.__ha_enabled = ossim_setup.get_ha_ha_heartbeat_start() == 'yes'
         self.__ha_virtual_ip = ossim_setup.get_ha_ha_virtual_ip()
         self.__admin_ip = ossim_setup.get_general_admin_ip()
         self.__server_net = ossim_setup.get_avvpn_config_network()
@@ -116,18 +116,18 @@ class AVVpn:
     def __str__(self):
         """Returns an string representing the object
         """
-        return "AVVPN: system_ip:%s " % (self.__sytem_ip)
+        return f"AVVPN: system_ip:{self.__sytem_ip} "
 
     def __create_node_configuration(self):
 
         client_end_point1 = ""
         client_end_point2 = ""
         try:
-            client_folder = '%s/%s' % (self.__opnodespath, self.__system_ip)
-            client_configuration_file = '%s/%s.conf' % (client_folder, self.__system_ip)
-            client_ca = '/etc/openvpn/%s/ca.crt' % self.__system_ip
-            client_cert = '/etc/openvpn/%s/%s.crt' % (self.__system_ip, self.__system_ip)
-            client_key = '/etc/openvpn/%s/%s.key' % (self.__system_ip, self.__system_ip)
+            client_folder = f'{self.__opnodespath}/{self.__system_ip}'
+            client_configuration_file = f'{client_folder}/{self.__system_ip}.conf'
+            client_ca = f'/etc/openvpn/{self.__system_ip}/ca.crt'
+            client_cert = f'/etc/openvpn/{self.__system_ip}/{self.__system_ip}.crt'
+            client_key = f'/etc/openvpn/{self.__system_ip}/{self.__system_ip}.key'
 
             if not os.path.exists(self.__opnodespath):
                 os.makedirs(self.__opnodespath)
@@ -135,10 +135,7 @@ class AVVpn:
             if not os.path.exists(client_folder):
                 os.makedirs(client_folder)
 
-            vpn_server_ip = self.__admin_ip
-            if self.__ha_enabled:
-                vpn_server_ip = self.__ha_virtual_ip
-
+            vpn_server_ip = self.__ha_virtual_ip if self.__ha_enabled else self.__admin_ip
             lines = ["client \n",
                      "dev %s\n" % self.__device,
                      "proto %s\n" % self.__proto,
@@ -163,26 +160,23 @@ class AVVpn:
             if self.__persistTun:
                 lines.append("persist-tun\n")
 
-            file = open(client_configuration_file, "w")
-            file.writelines(lines)
-            file.close()
-
+            with open(client_configuration_file, "w") as file:
+                file.writelines(lines)
             # Prepare the file to let the VPN client the key_size used
             key_size_file = ""
             key_size = 2048
             if self.__pem == "/etc/openvpn/AVinfraestructure/keys/dh1024.pem":
-                key_size_file = "%s/1024.keysize" % client_folder
+                key_size_file = f"{client_folder}/1024.keysize"
                 key_size = 1024
             else:
-                key_size_file = "%s/2048.keysize" % client_folder
+                key_size_file = f"{client_folder}/2048.keysize"
 
             # Modify vars so that KEY_SIZE is properly updated
             with open(self.__opvars, "r") as f:
-                out_fname = self.__opvars + ".tmp"
-                out = open(out_fname, "w")
-                for line in f:
-                    out.write(re.sub("KEY_SIZE=.*$", "KEY_SIZE=%d" % key_size, line))
-                out.close()
+                out_fname = f"{self.__opvars}.tmp"
+                with open(out_fname, "w") as out:
+                    for line in f:
+                        out.write(re.sub("KEY_SIZE=.*$", "KEY_SIZE=%d" % key_size, line))
                 os.rename(out_fname, self.__opvars)
 
             with open(key_size_file, "a") as f:
@@ -196,18 +190,19 @@ class AVVpn:
             cmd += 'cp "$opensslcnf_file" %s/openssl.cnf\n' % client_folder
             cmd += 'export EASY_RSA="${EASY_RSA:-.}" \n'
             cmd += '"$EASY_RSA/pkitool" %s \n' % self.__system_ip
-            cmd += 'cp -rf keys/%s* /etc/openvpn/nodes/%s/ ' % (self.__system_ip, self.__system_ip)
+            cmd += f'cp -rf keys/{self.__system_ip}* /etc/openvpn/nodes/{self.__system_ip}/ '
+
 
             (status, output) = getstatusoutput(cmd)
             if status != 0:
                 return False, output
             # create node tar.gz file
 
-            node_zip_name = "%s/%s.tar.gz" % (self.__opnodespath, self.__system_ip)
+            node_zip_name = f"{self.__opnodespath}/{self.__system_ip}.tar.gz"
 
             tar = tarfile.open(node_zip_name, "w:gz")
-            tar.add("%s" % client_folder)
-            tar.add("%s" % client_configuration_file)
+            tar.add(f"{client_folder}")
+            tar.add(f"{client_configuration_file}")
             tar.close()
 
             os.remove(key_size_file)
@@ -247,18 +242,17 @@ class AVVpn:
                 second_host_free = x
                 break
 
-            node_ccd_name = "%s/%s" % (self.__opccdpath, self.__system_ip)
-            client_end_point1 = "%s.%s" % (self.__server_net, first_host_free)
-            client_end_point2 = "%s.%s" % (self.__server_net, second_host_free)
+            node_ccd_name = f"{self.__opccdpath}/{self.__system_ip}"
+            client_end_point1 = f"{self.__server_net}.{first_host_free}"
+            client_end_point2 = f"{self.__server_net}.{second_host_free}"
 
             lines = ["ifconfig-push %s %s\n" % (client_end_point1, client_end_point2)]
 
             if not os.path.exists(self.__opccdpath):
                 os.makedirs(self.__opccdpath)
 
-            file = open(node_ccd_name, "w")
-            file.writelines(lines)
-            file.close()
+            with open(node_ccd_name, "w") as file:
+                file.writelines(lines)
         except Exception as err:
             return False, str(err)
 
@@ -331,9 +325,7 @@ class AVVpn:
         # Node Configuration
         self.remove_node_configuration()
         success, data = self.__create_node_configuration()
-        if not success:
-            return False, data
-        return True, data
+        return (True, data) if success else (False, data)
 
 
 def main():
@@ -348,7 +340,7 @@ def main():
     av_vpn = AVVpn(system_ip)
     result, data = av_vpn.create_configuration_files()
     if not result:
-        module.fail_json(msg="Error: %s" % data)
+        module.fail_json(msg=f"Error: {data}")
 
     module.exit_json(changed=True, data=data)
 

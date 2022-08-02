@@ -149,7 +149,7 @@ def connect_console():
     if console_status.status == CONSOLE_TOKEN_ISSUER_NOT_REACHABLE:
         return make_error('Failed to reach the token issuer.', 500)
     elif console_status.status == CONSOLE_TOKEN_REJECTED:
-        return make_error('Token denied by {}'.format(url), 500)
+        return make_error(f'Token denied by {url}', 500)
 
     return jsonify(status=translate_to_public_status_code(console_status.status), url=url)
 

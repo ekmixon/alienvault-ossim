@@ -94,36 +94,34 @@ class SensorYamlConfig(object):
             if not os.path.isfile(filename):
                 self.raw_data = ""
                 return True, "File empty"
-            f = open(filename, 'r')
-            self.raw_data = yaml.safe_load(f)
-            f.close()
+            with open(filename, 'r') as f:
+                self.raw_data = yaml.safe_load(f)
         except Exception as e:
-            return False, "Error loading the config file: {}".format(e)
+            return False, f"Error loading the config file: {e}"
         return True, "Success"
 
     def write_new_config(self, filename, plugins):
         try:
-            f = open(filename, 'w')
-            dic = ast.literal_eval(plugins)
-            new_config = {'plugins': []}
-            for device_id, device_data in dic.iteritems():
-                device_ip = device_data['device_ip']
-                for plugin in device_data['plugins']:
-                    plugin_path = self.get_plugin_path(plugin)
-                    if not plugin_path:
-                        f.close()
-                        return False, "Plugin path {} doesn't exist!".format(plugin_path)
-                    location = str(SensorYamlConfig.PLUGIN_BASE_LOCATION % (device_ip, device_ip))
-                    new_plugin_conf = {plugin_path:
-                                           {'config': {"location": location},
-                                            'DEFAULT': {"device": device_ip, "device_id": str(device_id)}
+            with open(filename, 'w') as f:
+                dic = ast.literal_eval(plugins)
+                new_config = {'plugins': []}
+                for device_id, device_data in dic.iteritems():
+                    device_ip = device_data['device_ip']
+                    for plugin in device_data['plugins']:
+                        plugin_path = self.get_plugin_path(plugin)
+                        if not plugin_path:
+                            f.close()
+                            return False, f"Plugin path {plugin_path} doesn't exist!"
+                        location = str(SensorYamlConfig.PLUGIN_BASE_LOCATION % (device_ip, device_ip))
+                        new_plugin_conf = {plugin_path:
+                                               {'config': {"location": location},
+                                                'DEFAULT': {"device": device_ip, "device_id": str(device_id)}
+                                               }
                                            }
-                                       }
-                    new_config['plugins'].append(new_plugin_conf)
-            yaml.safe_dump(new_config, f, width=1000)
-            f.close()
+                        new_config['plugins'].append(new_plugin_conf)
+                yaml.safe_dump(new_config, f, width=1000)
         except Exception as e:
-            msg = "Error writing the new configuration: {}".format(e)
+            msg = f"Error writing the new configuration: {e}"
             return False, msg
         return True, "Success"
 
@@ -141,11 +139,10 @@ class SensorYamlConfig(object):
         :returns True, "Success" on success False,"Error MSG" otherwise
         """
         try:
-            f = open(filename, 'w')
-            yaml.dump(self.raw_data, f, width=1000)
-            f.close()
+            with open(filename, 'w') as f:
+                yaml.dump(self.raw_data, f, width=1000)
         except Exception as e:
-            return False, "Error saving the yaml file; {}".format(e)
+            return False, f"Error saving the yaml file; {e}"
         return True, "Success"
 
     def get_plugin_path(self, plugin_name):
@@ -194,7 +191,7 @@ def main():
 
     except Exception as msg:
         stack_str = ''.join(traceback.format_stack())
-        module.fail_json(rc=1, msg="av_sensor_yaml error: %s, %s" % (str(msg), stack_str))
+        module.fail_json(rc=1, msg=f"av_sensor_yaml error: {str(msg)}, {stack_str}")
 
     module.exit_json(changed=True, plugins=json_data)
 

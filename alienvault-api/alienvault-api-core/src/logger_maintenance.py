@@ -69,7 +69,7 @@ def clean_logger():
         conf = get_logger_storage_days_life_time()
         if conf > 0:
             d = datetime.utcnow().date() + timedelta(days=-conf)
-            args = "end=%s" % datetime.strftime(d, "%Y/%m/%d")
+            args = f'end={datetime.strftime(d, "%Y/%m/%d")}'
             # Call ansible
             # I need to obtain the IP from the Alienvault_Config
             try:
@@ -78,10 +78,10 @@ def clean_logger():
                     # Verify the ip
                     (result, msg) = delete_raw_logs(server_ip, end=datetime.strftime(d, "%Y/%m/%d"))
                     return_value = result
-                    if not result:
+                    if not return_value:
                         notifier.error("Can't delete all logs in %s msg: %s" % (server_ip, str(msg)))
                     else:
-                        notifier.debug("Result from delete_raw_logs" + str(msg))
+                        notifier.debug(f"Result from delete_raw_logs{str(msg)}")
                 else:
                     notifier.error("Bad configuration. The server ip address is not a valid ip address")
             except NoResultFound:

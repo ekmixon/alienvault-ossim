@@ -51,7 +51,7 @@ def parse_av_config_response(response, system_ip):
 
 
 def read_file(host, file_name=None):
-    response = ansible.run_module([host], 'command', "cat %s" % file_name)
+    response = ansible.run_module([host], 'command', f"cat {file_name}")
     if host in response['dark']:
         return False, "read_file : " + response['dark'][host]['msg']
 
@@ -105,10 +105,14 @@ def copy_file(host_list=[], args={}):
     Copy a file to one or more remote systems.
     """
     response = ansible.run_module(host_list, 'copy', args, use_sudo=True)
-    for host in host_list:
-        if host in response['dark']:
-            return False, "system.copy_file : " + response['dark'][host]['msg']
-    return True, ''
+    return next(
+        (
+            (False, "system.copy_file : " + response['dark'][host]['msg'])
+            for host in host_list
+            if host in response['dark']
+        ),
+        (True, ''),
+    )
 
 
 def remove_file(host_list, file_name=None):
@@ -117,22 +121,30 @@ def remove_file(host_list, file_name=None):
     """
     if host_list is None:
         host_list = []
-    response = ansible.run_module(host_list, 'command', 'rm -f {}'.format(file_name))
-    for host in host_list:
-        if host in response['dark']:
-            return False, "remove_file : " + response['dark'][host]['msg']
-    return True, ''
+    response = ansible.run_module(host_list, 'command', f'rm -f {file_name}')
+    return next(
+        (
+            (False, "remove_file : " + response['dark'][host]['msg'])
+            for host in host_list
+            if host in response['dark']
+        ),
+        (True, ''),
+    )
 
 
 def remove_dir(host_list=[], dir_name=None):
     """
     Remove a directory from one or more remote systems.
     """
-    response = ansible.run_module(host_list, 'command', 'rm -rf %s' % dir_name)
-    for host in host_list:
-        if host in response['dark']:
-            return False, "remove_dir : " + response['dark'][host]['msg']
-    return True, ''
+    response = ansible.run_module(host_list, 'command', f'rm -rf {dir_name}')
+    return next(
+        (
+            (False, "remove_dir : " + response['dark'][host]['msg'])
+            for host in host_list
+            if host in response['dark']
+        ),
+        (True, ''),
+    )
 
 
 def gunzip_file(system_ip, gzip_file=None, gunzipped_file=None):
@@ -148,23 +160,36 @@ def gunzip_file(system_ip, gzip_file=None, gunzipped_file=None):
         success (bool): True if successful, False otherwise
         msg (str): error string message
     """
-    response = ansible.run_module([system_ip], 'shell', 'gunzip -c %s > %s' % (gzip_file, gunzipped_file))
+    response = ansible.run_module(
+        [system_ip], 'shell', f'gunzip -c {gzip_file} > {gunzipped_file}'
+    )
+
     success, msg = ansible_is_valid_response(system_ip, response)
-    if not success:
-        return False, "gunzip_file : %s" % msg
-    return True, ''
+    return (True, '') if success else (False, f"gunzip_file : {msg}")
 
 
 def ansible_is_valid_response(system_ip, response):
     """Check whether a ansible response is ok or not"""
     try:
         if system_ip in response['dark'] or 'unreachable' in response:
-            return False, "Something wrong happened while running ansible command %s" % str(response)
+            return (
+                False,
+                f"Something wrong happened while running ansible command {str(response)}",
+            )
+
         if 'failed' in response['contacted'][system_ip]:
-            return False, "Something wrong happened while running ansible command %s" % str(response)
+            return (
+                False,
+                f"Something wrong happened while running ansible command {str(response)}",
+            )
+
     except Exception as err:
         api_log.error(str(err))
-        return False, "Something wrong happened while running ansible command %s" % str(response)
+        return (
+            False,
+            f"Something wrong happened while running ansible command {str(response)}",
+        )
+
     return True, ""
 
 
@@ -173,12 +198,24 @@ def ansible_is_valid_playbook_response(system_ip, response):
     try:
         # {'192.168.5.122': {'unreachable': 0, 'skipped': 0, 'ok': 6, 'changed': 5, 'failures': 1}}
         if system_ip not in response:
-            return False, "Something wrong happened while running ansible command %s" % str(response)
+            return (
+                False,
+                f"Something wrong happened while running ansible command {str(response)}",
+            )
+
         if response[system_ip]['unreachable'] > 0 or response[system_ip]['failures'] > 0:
-            return False, "Something wrong happened while running ansible command %s" % str(response)
+            return (
+                False,
+                f"Something wrong happened while running ansible command {str(response)}",
+            )
+
     except Exception as err:
         api_log.error(str(err))
-        return False, "Something wrong happened while running ansible command %s" % str(response)
+        return (
+            False,
+            f"Something wrong happened while running ansible command {str(response)}",
+        )
+
     return True, ""
 
 
@@ -195,8 +232,8 @@ def local_copy_file(system_ip, src_file, dst_file):
         dst_file (str): path to destination file
 
     """
-    cp_command = "cp -f %s %s" % (src_file, dst_file)
-    chmod_command = "chmod %s %s" % ("777", dst_file)
+    cp_command = f"cp -f {src_file} {dst_file}"
+    chmod_command = f"chmod 777 {dst_file}"
     response = ansible.run_module([system_ip], module='command', args=cp_command, use_sudo=True)
     if system_ip in response['dark']:
         return False, "system.local_copy_file : " + response['dark'][system_ip]['msg']
@@ -219,7 +256,7 @@ def get_files_in_path(system_ip, path):
     pattern = r'(?P<mode>.*?)\s+(?P<hl>\d+)\s+(?P<user>.*?)\s+(?P<group>.*?)\s+(?P<size>\d+)\s+(?P<date>(.*?\s+.*?))\s+(?P<filename>.*)'
     for line in lines:
         m = re.match(pattern, line)
-        result[os.path.join(path, m.group('filename'))] = m.groupdict()
+        result[os.path.join(path, m['filename'])] = m.groupdict()
     return True, result
 
 
@@ -231,7 +268,7 @@ def fire_trigger(system_ip, trigger, execute_trigger=True):
     Return:
         True on success, False on failure
     """
-    command_fire = "dpkg-trigger --no-await %s" % trigger
+    command_fire = f"dpkg-trigger --no-await {trigger}"
     response = ansible.run_module([system_ip], module='command', args=command_fire, use_sudo=True)
     if system_ip in response['dark']:
         return False, "system.fire_trigger : " + response['dark'][system_ip]['msg']

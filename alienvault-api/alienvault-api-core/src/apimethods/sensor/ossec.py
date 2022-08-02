@@ -87,7 +87,7 @@ def get_ossec_directory(sensor_id):
     success, base_path = get_base_path_from_sensor_id(sensor_id)
     if not success:
         return False, "Can't retrieve the destination path: %s" % base_path
-    destination_path = base_path + "/ossec/"
+    destination_path = f"{base_path}/ossec/"
 
     # Create directory if not exists
     success, msg = create_local_directory(destination_path)
@@ -181,11 +181,13 @@ def ossec_extract_agent_key(sensor_id, agent_id):
     """
     # Check the agent_id
     if re.match(r"^[0-9]{1,4}$", agent_id) is None:
-        return (False, "Bad agent_id %s" % agent_id)
+        return False, f"Bad agent_id {agent_id}"
     (success, system_ip) = get_sensor_ip_from_sensor_id(sensor_id)
-    if not success:
-        return (False, system_ip)
-    return ans_ossec_extract_agent_key(system_ip, agent_id)
+    return (
+        ans_ossec_extract_agent_key(system_ip, agent_id)
+        if success
+        else (False, system_ip)
+    )
 
 
 def ossec_get_logs(sensor_id, ossec_log, number_of_lines):
@@ -196,9 +198,11 @@ def ossec_get_logs(sensor_id, ossec_log, number_of_lines):
        @param number_of_logs: Number of line to read from the logs
     """
     (success, system_ip) = get_sensor_ip_from_sensor_id(sensor_id)
-    if not success:
-        return (False, system_ip)
-    return ans_ossec_get_logs(system_ip, ossec_log, number_of_lines)
+    return (
+        ans_ossec_get_logs(system_ip, ossec_log, number_of_lines)
+        if success
+        else (False, system_ip)
+    )
 
 
 def ossec_get_preconfigured_agent(sensor_id, agent_id, agent_type):
@@ -221,18 +225,23 @@ def ossec_rootcheck(sensor_id, agent_id):
         @param agent_id: Agent id [0-9]{1,4}
     """
     (success, system_ip) = get_sensor_ip_from_sensor_id(sensor_id)
-    if not success:
-        return (False, system_ip)
-    return ans_ossec_rootcheck(system_ip, agent_id)
+    return (
+        ans_ossec_rootcheck(system_ip, agent_id)
+        if success
+        else (False, system_ip)
+    )
 
 
 @use_cache(namespace="sensor_ossec_agents")
 def ossec_get_check(sensor_id, agent_name, check_type, no_cache=False):
     (success, system_ip) = get_sensor_ip_from_sensor_id(sensor_id)
-    if not success:
-        return False, "Invalid sensor id" % sensor_id
-
-    return ans_ossec_get_check(system_ip=system_ip, check_type=check_type, agent_name=agent_name)
+    return (
+        ans_ossec_get_check(
+            system_ip=system_ip, check_type=check_type, agent_name=agent_name
+        )
+        if success
+        else (False, "Invalid sensor id" % sensor_id)
+    )
 
 
 def apimethod_hids_get_list(sensor_id):
@@ -257,15 +266,17 @@ def ossec_get_available_agents(sensor_id, op_ossec, agent_id=''):
 
     """
     (success, system_ip) = get_sensor_ip_from_sensor_id(sensor_id)
-    if not success:
-        return (False, system_ip)
-    return ans_ossec_get_available_agents(system_ip, op_ossec, agent_id)
+    return (
+        ans_ossec_get_available_agents(system_ip, op_ossec, agent_id)
+        if success
+        else (False, system_ip)
+    )
 
 
 def apimethod_ossec_control(sensor_id, operation, option):
     (success, system_ip) = get_sensor_ip_from_sensor_id(sensor_id)
     if not success:
-        return False, "Invalid sensor id %s" % sensor_id
+        return False, f"Invalid sensor id {sensor_id}"
 
     (result, ans_result) = ans_ossec_control(system_ip=system_ip, operation=operation, option=option)
 
@@ -285,26 +296,32 @@ def apimethod_ossec_control(sensor_id, operation, option):
 
 def ossec_add_agentless(sensor_id, host, user, password, supassword):
     (success, system_ip) = get_sensor_ip_from_sensor_id(sensor_id)
-    if not success:
-        return False, "Invalid sensor id %s" % sensor_id
-    return ans_ossec_add_agentless(system_ip, host, user, password, supassword)
+    return (
+        ans_ossec_add_agentless(system_ip, host, user, password, supassword)
+        if success
+        else (False, f"Invalid sensor id {sensor_id}")
+    )
 
 
 def apimethod_ossec_get_modified_registry_entries(sensor_id, agent_id):
     (success, system_ip) = get_sensor_ip_from_sensor_id(sensor_id)
-    if not success:
-        return False, "Invalid sensor id %s" % sensor_id
-    return ans_ossec_get_modified_registry_entries(system_ip=system_ip, agent_id=agent_id)
+    return (
+        ans_ossec_get_modified_registry_entries(
+            system_ip=system_ip, agent_id=agent_id
+        )
+        if success
+        else (False, f"Invalid sensor id {sensor_id}")
+    )
 
 
 def apimethod_get_configuration_rule_file(sensor_id, rule_filename):
     (success, system_ip) = get_sensor_ip_from_sensor_id(sensor_id)
     if not success:
-        return False, "Invalid sensor id %s" % sensor_id
+        return False, f"Invalid sensor id {sensor_id}"
     success, base_path = get_base_path_from_sensor_id(sensor_id)
     if not success:
         return False, "Can't retrieve the destination path: %s" % base_path
-    destination_path = base_path + "/ossec/rules/"
+    destination_path = f"{base_path}/ossec/rules/"
 
     success, msg = create_local_directory(destination_path)
     if not success:
@@ -314,36 +331,35 @@ def apimethod_get_configuration_rule_file(sensor_id, rule_filename):
     success, msg = ans_ossec_get_configuration_rule(system_ip=system_ip,
                                                     rule_filename=rule_filename,
                                                     destination_path=destination_path)
-    if not success:
-        if str(msg).find('the remote file does not exist') > 0:
-            if touch_file(destination_path+rule_filename):
-                success = True
-                msg = destination_path+rule_filename
+    if (
+        not success
+        and str(msg).find('the remote file does not exist') > 0
+        and touch_file(destination_path + rule_filename)
+    ):
+        success = True
+        msg = destination_path+rule_filename
 
     success, result = set_ossec_file_permissions(destination_path+rule_filename)
-    if not success:
-        return False, str(result)
-
-    return success, msg
+    return (success, msg) if success else (False, str(result))
 
 
 def apimethod_put_ossec_configuration_file(sensor_id, filename):
     if filename not in ['local_rules.xml', 'rules_config.xml']:
-        return False, "Invalid configuration file to put: %s" % str(filename)
+        return False, f"Invalid configuration file to put: {str(filename)}"
     (success, system_ip) = get_sensor_ip_from_sensor_id(sensor_id)
     if not success:
-        return False, "Invalid sensor id %s" % sensor_id
+        return False, f"Invalid sensor id {sensor_id}"
     success, base_path = get_base_path_from_sensor_id(sensor_id)
     if not success:
         return False, "Can't retrieve the destination path: %s" % base_path
-    src_file = base_path + "/ossec/rules/%s" % filename
+    src_file = base_path + f"/ossec/rules/{filename}"
     return ans_ossec_put_configuration_rule_file(system_ip=system_ip, local_rule_filename=src_file, remote_rule_name=filename)
 
 
 def ossec_get_agent_config(sensor_id):
     (success, system_ip) = get_sensor_ip_from_sensor_id(sensor_id)
     if not success:
-        return False, "Invalid sensor id %s" % sensor_id
+        return False, f"Invalid sensor id {sensor_id}"
 
     success, ossec_directory = get_ossec_directory(sensor_id)
     if not success:
@@ -357,30 +373,29 @@ def ossec_get_agent_config(sensor_id):
                                    fail_on_missing=True,
                                    flat=True)
     try:
-        if not success:
-            if str(filename).find('the remote file does not exist') > 0:
-                if touch_file(agent_config_file):
-                    success = True
-                    filename = agent_config_file
+        if (
+            not success
+            and str(filename).find('the remote file does not exist') > 0
+            and touch_file(agent_config_file)
+        ):
+            success = True
+            filename = agent_config_file
     except Exception as err:
         import traceback
-        api_log.error("EX: %s, %s" % (str(err), traceback.format_exc()))
+        api_log.error(f"EX: {str(err)}, {traceback.format_exc()}")
 
     if not success:
         api_log.error(str(filename))
         return False, "Something wrong happened getting the HIDS agent configuration file"
 
     success, result = set_ossec_file_permissions(agent_config_file)
-    if not success:
-        return False, str(result)
-
-    return True, filename
+    return (True, filename) if success else (False, str(result))
 
 
 def ossec_put_agent_config(sensor_id):
     (success, system_ip) = get_sensor_ip_from_sensor_id(sensor_id)
     if not success:
-        return False, "Invalid sensor id %s" % sensor_id
+        return False, f"Invalid sensor id {sensor_id}"
 
     success, ossec_directory = get_ossec_directory(sensor_id)
     if not success:
@@ -399,8 +414,11 @@ def ossec_put_agent_config(sensor_id):
         api_log.error(str(msg))
         return False, "Error verifiying the HIDS agent configuration file\n%s" % msg
 
-    success, msg = copy_file(host_list=[system_ip],
-                             args="src=%s dest=%s owner=root group=ossec mode=644" % (agent_config_file, OSSEC_CONFIG_AGENT_PATH))
+    success, msg = copy_file(
+        host_list=[system_ip],
+        args=f"src={agent_config_file} dest={OSSEC_CONFIG_AGENT_PATH} owner=root group=ossec mode=644",
+    )
+
     if not success:
         api_log.error(str(msg))
         return False, "Error setting the HIDS agent configuration file"
@@ -411,7 +429,7 @@ def ossec_put_agent_config(sensor_id):
 def ossec_get_server_config(sensor_id):
     (success, system_ip) = get_sensor_ip_from_sensor_id(sensor_id)
     if not success:
-        return False, "Invalid sensor id %s" % sensor_id
+        return False, f"Invalid sensor id {sensor_id}"
 
     success, ossec_directory = get_ossec_directory(sensor_id)
     if not success:
@@ -434,15 +452,13 @@ def ossec_get_server_config(sensor_id):
             return False, "Something wrong happened getting the HIDS server configuration file"
 
     success, result = set_ossec_file_permissions(server_config_file)
-    if not success:
-        return False, str(result)
-    return True, filename
+    return (True, filename) if success else (False, str(result))
 
 
 def ossec_put_server_config(sensor_id):
     (success, system_ip) = get_sensor_ip_from_sensor_id(sensor_id)
     if not success:
-        return False, "Invalid sensor id %s" % sensor_id
+        return False, f"Invalid sensor id {sensor_id}"
 
     success, ossec_directory = get_ossec_directory(sensor_id)
     if not success:
@@ -461,8 +477,11 @@ def ossec_put_server_config(sensor_id):
         api_log.error(str(msg))
         return False, "Error verifiying the ossec server configuration file\n%s" % msg
 
-    success, msg = copy_file(host_list=[system_ip],
-                             args="src=%s dest=%s owner=root group=ossec mode=644" % (server_config_file, OSSEC_CONFIG_SERVER_PATH))
+    success, msg = copy_file(
+        host_list=[system_ip],
+        args=f"src={server_config_file} dest={OSSEC_CONFIG_SERVER_PATH} owner=root group=ossec mode=644",
+    )
+
     if not success:
         api_log.error(str(msg))
         return False, "Error setting the HIDS server configuration file"
@@ -473,48 +492,49 @@ def ossec_put_server_config(sensor_id):
 def apimethod_get_agentless_passlist(sensor_id):
     (success, system_ip) = get_sensor_ip_from_sensor_id(sensor_id)
     if not success:
-        return False, "Invalid sensor id %s" % sensor_id
+        return False, f"Invalid sensor id {sensor_id}"
     success, base_path = get_base_path_from_sensor_id(sensor_id)
     if not success:
         return False, "Can't retrieve the destination path: %s" % base_path
-    destination_path = base_path + "/ossec/agentless/"
+    destination_path = f"{base_path}/ossec/agentless/"
 
     success, msg = create_local_directory(destination_path)
     if not success:
         api_log.error(str(msg))
         return False, "Error creating directory '%s'" % destination_path
-    dst_filename = destination_path+".passlist"
+    dst_filename = f"{destination_path}.passlist"
     success, msg = ans_ossec_get_agentless_passlist(system_ip=system_ip,
                                                     destination_path=dst_filename)
-    if not success:
-        if str(msg).find('the remote file does not exist') > 0:
-            if touch_file(dst_filename):
-                success = True
-                msg = dst_filename
+    if (
+        not success
+        and str(msg).find('the remote file does not exist') > 0
+        and touch_file(dst_filename)
+    ):
+        success = True
+        msg = dst_filename
 
     success, result = set_ossec_file_permissions(dst_filename)
-    if not success:
-        return False, str(result)
-
-    return success, msg
+    return (success, msg) if success else (False, str(result))
 
 
 def apimethod_put_agentless_passlist(sensor_id):
     (success, system_ip) = get_sensor_ip_from_sensor_id(sensor_id)
     if not success:
-        return False, "Invalid sensor id %s" % sensor_id
+        return False, f"Invalid sensor id {sensor_id}"
     success, base_path = get_base_path_from_sensor_id(sensor_id)
     if not success:
         return False, "Can't retrieve the destination path: %s" % base_path
-    src_file = base_path + "/ossec/agentless/.passlist"
+    src_file = f"{base_path}/ossec/agentless/.passlist"
     return ans_ossec_put_agentless_passlist(system_ip=system_ip, local_passfile=src_file)
 
 
 def apimethod_get_agentless_list(sensor_id):
     (success, system_ip) = get_sensor_ip_from_sensor_id(sensor_id)
-    if not success:
-        return False, "Invalid sensor id %s" % sensor_id
-    return ans_ossec_get_agentless_list(system_ip=system_ip)
+    return (
+        ans_ossec_get_agentless_list(system_ip=system_ip)
+        if success
+        else (False, f"Invalid sensor id {sensor_id}")
+    )
 
 
 def apimethod_ossec_get_agent_detail(sensor_id, agent_id):
@@ -524,9 +544,11 @@ def apimethod_ossec_get_agent_detail(sensor_id, agent_id):
 
     """
     (success, system_ip) = get_sensor_ip_from_sensor_id(sensor_id)
-    if not success:
-        return (False, "Invalid sensor id %s" % sensor_id)
-    return ans_ossec_get_ossec_agent_detail(system_ip, agent_id)
+    return (
+        ans_ossec_get_ossec_agent_detail(system_ip, agent_id)
+        if success
+        else (False, f"Invalid sensor id {sensor_id}")
+    )
 
 
 def apimethod_ossec_get_agent_from_db(sensor_id, agent_id):
@@ -553,6 +575,8 @@ def apimethod_ossec_get_syscheck(sensor_id, agent_id):
         :param agent_id: Agente id \d{1,4}
     """
     (success, system_ip) = get_sensor_ip_from_sensor_id(sensor_id)
-    if not success:
-        return (False, "Invalid sensor id %s" % sensor_id)
-    return ans_ossec_get_syscheck(system_ip, agent_id)
+    return (
+        ans_ossec_get_syscheck(system_ip, agent_id)
+        if success
+        else (False, f"Invalid sensor id {sensor_id}")
+    )

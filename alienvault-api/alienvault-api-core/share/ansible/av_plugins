@@ -115,13 +115,11 @@ def __parse_legacy_header(plugin_name, header_lines):
     in_vendor_section = False
 
     for line in header_lines:
-        if not vendor_section_read:
-            if in_vendor_regex.match(line):
-                in_vendor_section = True
+        if not vendor_section_read and in_vendor_regex.match(line):
+            in_vendor_section = True
         if in_vendor_section and not vendor_section_read:
-            data = vendor_regex.match(line)
-            if data:
-                header_info.update(data.groupdict())
+            if data := vendor_regex.match(line):
+                header_info |= data.groupdict()
                 vendor_section_read = True
 
     # If the config file doesn't have vendor,model and version info it setted to:
@@ -173,21 +171,18 @@ def __parse_header(plugin_name, header_lines):
 
     for line in header_lines:
         if not cfg_version_read:
-            data = info_regex.match(line)
-            if data:
-                header_info.update(data.groupdict())
+            if data := info_regex.match(line):
+                header_info |= data.groupdict()
                 cfg_version_read = True
 
-        if not plugin_last_modification_read:
-            data = last_regex.match(line)
-            if data:
+        if data := last_regex.match(line):
+            if not plugin_last_modification_read:
                 if re.match("\d\d\d\d-\d\d-\d\d \d\d:\d\d(:\d\d)?", data.groupdict()["last_modification"]):
                     header_info.update(data.groupdict())
                 plugin_last_modification_read = True
 
-        if in_vendor_section and not vendor_section_read:
-            data = vendor_regex.match(line)
-            if data:
+        if data := vendor_regex.match(line):
+            if in_vendor_section and not vendor_section_read:
                 header_info['vendor'] = data.groupdict()['vendor']
                 header_info['model'] = data.groupdict()['model']
                 header_info['version'] = data.groupdict()['version']
@@ -265,23 +260,19 @@ def __get_available_plugins(plugin_path=None):
                 # Search for type and plugin_id
                 for line in plugin_content:
                     if 'type' not in plugin_info:
-                        plugin_type_match = plugin_type_regex.match(line)
-                        if plugin_type_match:
-                            plugin_info.update(plugin_type_match.groupdict())
+                        if plugin_type_match := plugin_type_regex.match(line):
+                            plugin_info |= plugin_type_match.groupdict()
 
                     if 'plugin_id' not in plugin_info:
-                        plugin_id_match = plugin_id_regex.match(line)
-                        if plugin_id_match:
+                        if plugin_id_match := plugin_id_regex.match(line):
                             plugin_info.update(plugin_id_match.groupdict())
 
                     if 'location' not in plugin_info:
-                        location_match = plugin_location_regex.match(line)
-                        if location_match:
+                        if location_match := plugin_location_regex.match(line):
                             plugin_info.update(location_match.groupdict())
 
                     if 'source' not in plugin_info:
-                        source_match = plugin_source_regex.match(line)
-                        if source_match:
+                        if source_match := plugin_source_regex.match(line):
                             plugin_info.update(source_match.groupdict())
 
                     if 'plugin_id' in plugin_info and \
@@ -346,15 +337,18 @@ def __run_module(module):
 
     plugins = __get_available_plugins()
     for key, plugin in plugins.iteritems():
-        plugins[key]['shipped'] = True if key in shipped_plugins else False
+        plugins[key]['shipped'] = key in shipped_plugins
 
     enabled_by_device = __parse_yaml()
 
-    data = {}
-    data['plugins'] = plugins
-    data['enabled'] = {'detectors': detectors_enabled,
-                       'monitors': monitors_enabled,
-                       'devices': enabled_by_device}
+    data = {
+        'plugins': plugins,
+        'enabled': {
+            'detectors': detectors_enabled,
+            'monitors': monitors_enabled,
+            'devices': enabled_by_device,
+        },
+    }
 
     return True, data
 

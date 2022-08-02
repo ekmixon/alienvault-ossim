@@ -105,7 +105,7 @@ class OTXv2(object):
     def __init__(self, key, server="https://otx.alienvault.com/"):
         self.key = key
         self.server = server
-        self.url_base = "{}api/v1".format(server)
+        self.url_base = f"{server}api/v1"
         self.avproxy = AVProxy()
         self.pulse_db = PulseDB()
         self.pulse_correlation_db = PulseCorrelationDB()
@@ -130,7 +130,7 @@ class OTXv2(object):
         try:
             self.pulse_db.set_key_value(date_type, update_date)
         except Exception as err:
-            api_log.error("Cannot save messages revision: %s" % str(err))
+            api_log.error(f"Cannot save messages revision: {str(err)}")
             return False
 
         return True
@@ -149,7 +149,7 @@ class OTXv2(object):
         try:
             latest_timestamp = self.pulse_db.get(date_type)
         except Exception as err:
-            api_log.warning("Cannot get messages revision: {}".format(err))
+            api_log.warning(f"Cannot get messages revision: {err}")
             return None
 
         return None if latest_timestamp == "" else latest_timestamp
@@ -164,7 +164,7 @@ class OTXv2(object):
             Raise an exception when something is wrong
         """
 
-        api_log.info("trying to make a request: {}".format(url))
+        api_log.info(f"trying to make a request: {url}")
         custom_headers = {'X-OTX-API-KEY': self.key}
         if self.otx_user_version:
             # Information about system that is using OTX
@@ -173,11 +173,11 @@ class OTXv2(object):
         # http://docs.python-requests.org/en/master/user/advanced/#proxies
         proxies = self.avproxy.get_proxies()
         response_data = requests.get(url, headers=custom_headers, proxies=proxies, timeout=10)
-        api_log.info("Status code: {}".format(response_data.status_code))
+        api_log.info(f"Status code: {response_data.status_code}")
 
         if response_data.status_code in GENERAL_ERROR_CODES:
             # Making timeout
-            raise RequestException("Response status code: {}".format(response_data.status_code))
+            raise RequestException(f"Response status code: {response_data.status_code}")
 
         if response_data.status_code == INVALID_API_KEY_CODE:
             raise InvalidAPIKey("Invalid API Key")
@@ -194,12 +194,12 @@ class OTXv2(object):
         Returns:
             user_data(dict): A dict with the user info.
         """
-        url = "{}/user/".format(self.url_base)
+        url = f"{self.url_base}/user/"
 
         try:
             user_data = self.make_request(url)
         except Exception as err:
-            api_log.warning("OTX key activation error: {}".format(err))
+            api_log.warning(f"OTX key activation error: {err}")
             raise
 
         return user_data
@@ -234,7 +234,7 @@ class OTXv2(object):
                     del_pulses -= 1
                     continue
                 except Exception as err:
-                    api_log.error("Error deleting Pulse: {}".format(err))
+                    api_log.error(f"Error deleting Pulse: {err}")
                     del_pulses -= 1
                     continue
         return del_pulses
@@ -248,13 +248,13 @@ class OTXv2(object):
         """
         p_download = []
         for p_id in pulses:
-            request = "{}/pulses/{}/".format(self.url_base, p_id)
+            request = f"{self.url_base}/pulses/{p_id}/"
             try:
                 json_data = self.make_request(request)
                 # Save pulse data on redis
                 p_download.append(json_data)
             except Exception as err:
-                api_log.warning("Cannot download pulse {}: {}".format(p_id, err))
+                api_log.warning(f"Cannot download pulse {p_id}: {err}")
                 continue
 
         return self.save_pulses(p_download)
@@ -268,7 +268,10 @@ class OTXv2(object):
         """
         pulse_downloaded = 0
         for author in authors:
-            next_request = "{}/pulses/subscribed?limit=20&author_name={}".format(self.url_base, author)
+            next_request = (
+                f"{self.url_base}/pulses/subscribed?limit=20&author_name={author}"
+            )
+
             while next_request:
                 try:
                     json_data = self.make_request(next_request)
@@ -277,7 +280,7 @@ class OTXv2(object):
                     # Get next request
                     next_request = json_data.get('next')
                 except Exception as err:
-                    api_log.warning("Cannot download pulses from author {}: {}".format(author, err))
+                    api_log.warning(f"Cannot download pulses from author {author}: {err}")
                     continue
 
         return pulse_downloaded
@@ -292,11 +295,12 @@ class OTXv2(object):
         if len(authors) < 1:
             return 0
 
-        pulse_list = []
         all_pulses = self.pulse_db.get_all()
-        for pulse in all_pulses:
-            if pulse.get('author_name', '') in authors:
-                pulse_list.append(pulse.get('id'))
+        pulse_list = [
+            pulse.get('id')
+            for pulse in all_pulses
+            if pulse.get('author_name', '') in authors
+        ]
 
         return self.remove_pulses(pulse_list)
 
@@ -310,13 +314,14 @@ class OTXv2(object):
         subscribed_timestamp = self.get_latest_request('subscribed')
         events_timestamp = self.get_latest_request('events')
 
-        # If it is the first time we download the pulses we don't execute this call.
-        if subscribed_timestamp is not None:
-            # Getting event time or subscribed time in case event time is null by any reason.
-            events_timestamp = subscribed_timestamp if events_timestamp is None else events_timestamp
-            next_request = "{}/pulses/events?limit=20&since={}".format(self.url_base, events_timestamp)
-        else:
+        if subscribed_timestamp is None:
             return total_add, total_del
+
+        # Getting event time or subscribed time in case event time is null by any reason.
+        events_timestamp = subscribed_timestamp if events_timestamp is None else events_timestamp
+        next_request = (
+            f"{self.url_base}/pulses/events?limit=20&since={events_timestamp}"
+        )
 
         event = {}
         while next_request:
@@ -344,7 +349,7 @@ class OTXv2(object):
                 next_request = json_data.get('next')
 
             except Exception as err:
-                api_log.warning("Cannot download pulse updates: {}".format(err))
+                api_log.warning(f"Cannot download pulse updates: {err}")
                 raise
 
         update_timestamp = event.get('created', None)
@@ -364,9 +369,10 @@ class OTXv2(object):
         subscribed_timestamp = self.get_latest_request('subscribed')
 
         if subscribed_timestamp is not None:
-            next_request = "{}/pulses/subscribed?limit=20&modified_since={}".format(self.url_base, subscribed_timestamp)
+            next_request = f"{self.url_base}/pulses/subscribed?limit=20&modified_since={subscribed_timestamp}"
+
         else:
-            next_request = "{}/pulses/subscribed?limit=20".format(self.url_base)
+            next_request = f"{self.url_base}/pulses/subscribed?limit=20"
 
         # This var will store the date of the newest pulse that will be used to query the next time.
         update_timestamp = None
@@ -388,7 +394,7 @@ class OTXv2(object):
                 # Get next request
                 next_request = json_data.get('next')
             except Exception as err:
-                api_log.warning("Cannot download new pulses: {}".format(err))
+                api_log.warning(f"Cannot download new pulses: {err}")
                 raise
 
         # Saving the request date
@@ -428,10 +434,10 @@ class OTXv2(object):
             if data_retrieved:
                 # we need only product name and version number, so get first 2
                 version_data = version_data.replace('ALIENVAULT', 'USM').split()[:2]
-                otx_user_version = 'OTX {}'.format('/'.join(version_data))
+                otx_user_version = f"OTX {'/'.join(version_data)}"
             else:
-                api_log.warning('Bad result returned for alienvault version: {}'.format(version_data))
+                api_log.warning(f'Bad result returned for alienvault version: {version_data}')
         except Exception as err:
-            api_log.warning('Failed to get alienvault version. Reason: {}'.format(err))
+            api_log.warning(f'Failed to get alienvault version. Reason: {err}')
 
         return otx_user_version

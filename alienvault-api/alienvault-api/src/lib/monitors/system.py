@@ -144,11 +144,11 @@ class MonitorSystemCPULoad(Monitor):
                     monitor_data = {"cpu_load": load}
                     self.save_data(system_id, ComponentTypes.SYSTEM, self.get_json_message(monitor_data))
                 except Exception:
-                    logger.error("Error==>> " + traceback.format_exc())
+                    logger.error(f"Error==>> {traceback.format_exc()}")
                     rt = False
                     break
             else:
-                logger.error("MonitorSystemCPULoad: %s" % load)
+                logger.error(f"MonitorSystemCPULoad: {load}")
                 rt = False
                 break
         return rt
@@ -175,9 +175,7 @@ class MonitorDiskUsage(Monitor):
         if not rc:
             logger.error("Can't retrieve systems..%s" % str(system_list))
             return False
-        args = {}
-        args['plugin_list'] = 'disk_usage.plg'
-        args['output_type'] = 'ansible'
+        args = {'plugin_list': 'disk_usage.plg', 'output_type': 'ansible'}
         for (system_id, system_ip) in system_list:
             dummy_result, ansible_output = get_root_disk_usage(system_ip)
 
@@ -207,7 +205,7 @@ class MonitorSystemDNS(Monitor):
         for (system_id, system_ip) in system_list:
             # Use ansible to get the DNS config.
             result, ansible_output = get_av_config(system_ip, {'general_admin_dns': ''})
-            logger.info("DNS returned from ossim_setup.conf %s" % str(ansible_output))
+            logger.info(f"DNS returned from ossim_setup.conf {str(ansible_output)}")
             if result:
                 dnslist = []
                 if 'general_admin_dns' in ansible_output:
@@ -218,7 +216,7 @@ class MonitorSystemDNS(Monitor):
                     if r == -2:
                         count += 1
                     elif r == -1:
-                        logger.error("Bad data in admin_dns field of ossim_setup.conf: " + str(ip))
+                        logger.error(f"Bad data in admin_dns field of ossim_setup.conf: {str(ip)}")
                 # logger.info("DNS IP count = " + str(count))
                 if count == len(dnslist):
                     admin_dns_msg = "Warning: All DNS configured are externals"
@@ -231,11 +229,17 @@ class MonitorSystemDNS(Monitor):
                                    self.get_json_message({'admin_dns': 'DNS ok. You have at least one internal DNS',
                                                           'internal_dns': True}))
 
-            else:
-                if not self.save_data(system_id, ComponentTypes.SYSTEM,
-                                      self.get_json_message({'admin_dns': 'Error: %s' % str(ansible_output),
-                                                             'internal_dns': True})):
-                    logger.error("Can't save monitor info")
+            elif not self.save_data(
+                system_id,
+                ComponentTypes.SYSTEM,
+                self.get_json_message(
+                    {
+                        'admin_dns': f'Error: {str(ansible_output)}',
+                        'internal_dns': True,
+                    }
+                ),
+            ):
+                logger.error("Can't save monitor info")
         return True
 
 
@@ -301,7 +305,9 @@ class MonitorRetrievesRemoteSysStatus(Monitor):
 
         except Exception as err:
             api_log.error(
-                "Something wrong happened while running the MonitorRetrieveRemoteSysStatus monitor %s" % str(err))
+                f"Something wrong happened while running the MonitorRetrieveRemoteSysStatus monitor {str(err)}"
+            )
+
             return False
         return True
 
@@ -349,11 +355,16 @@ class MonitorRetrievesRemoteInfo(Monitor):
                                                    backup_type="configuration",
                                                    no_cache=True)
                 if not success:
-                    logger.warning("[MonitorRetrievesRemoteInfo] get_backup_list failed: %s" % message)
+                    logger.warning(
+                        f"[MonitorRetrievesRemoteInfo] get_backup_list failed: {message}"
+                    )
+
 
         except Exception as err:
             api_log.error(
-                "Something wrong happened while running the MonitorRetrieveRemoteSysStatus monitor %s" % str(err))
+                f"Something wrong happened while running the MonitorRetrieveRemoteSysStatus monitor {str(err)}"
+            )
+
             return False
         return True
 
@@ -456,42 +467,58 @@ class MonitorUpdateSysWithRemoteInfo(Monitor):
                 if vpn_ip is not None:
                     success, message = set_system_vpn_ip(system_id, vpn_ip)
                     if not success:
-                        logger.warning("[MonitorUpdateSysWithRemoteInfo] set_system_vpn_ip failed: %s" % message)
+                        logger.warning(
+                            f"[MonitorUpdateSysWithRemoteInfo] set_system_vpn_ip failed: {message}"
+                        )
+
 
                 if ha_role is not None:
                     success, message = set_system_ha_role(system_id, ha_role)
-                    if not success:
-                        logger.warning("[MonitorUpdateSysWithRemoteInfo] set_system_ha_role failed: %s" % message)
                 else:
                     success, message = set_system_ha_role(system_id, 'NULL')
-                    if not success:
-                        logger.warning("[MonitorUpdateSysWithRemoteInfo] set_system_ha_role failed: %s" % message)
+                if not success:
+                    logger.warning(
+                        f"[MonitorUpdateSysWithRemoteInfo] set_system_ha_role failed: {message}"
+                    )
 
                 if ha_ip is not None:
                     success, message = set_system_ha_ip(system_id, ha_ip)
                     if not success:
-                        logger.warning("[MonitorUpdateSysWithRemoteInfo] set_system_ha_ip: %s" % message)
+                        logger.warning(f"[MonitorUpdateSysWithRemoteInfo] set_system_ha_ip: {message}")
                     success, message = fix_system_references()
                     if not success:
-                        logger.warning("[MonitorUpdateSysWithRemoteInfo] fix_system_references: %s" % message)
+                        logger.warning(
+                            f"[MonitorUpdateSysWithRemoteInfo] fix_system_references: {message}"
+                        )
+
                     if ha_name is not None:
                         success, message = set_system_ha_name(system_id, ha_name)
                         if not success:
-                            logger.warning("[MonitorUpdateSysWithRemoteInfo] set_system_ha_name failed: %s" % message)
+                            logger.warning(
+                                f"[MonitorUpdateSysWithRemoteInfo] set_system_ha_name failed: {message}"
+                            )
+
                 else:
                     success, message = set_system_ha_ip(system_id, '')
                     if not success:
-                        logger.warning("[MonitorUpdateSysWithRemoteInfo] set_system_ha_ip failed: %s" % message)
+                        logger.warning(
+                            f"[MonitorUpdateSysWithRemoteInfo] set_system_ha_ip failed: {message}"
+                        )
+
 
                 if hostname is not None:
                     success, message = db_system_update_hostname(system_id, hostname)
                     if not success:
                         logger.warning(
-                            "[MonitorUpdateSysWithRemoteInfo] db_system_update_hostname failed: %s" % message)
+                            f"[MonitorUpdateSysWithRemoteInfo] db_system_update_hostname failed: {message}"
+                        )
+
 
         except Exception as err:
             api_log.error(
-                "Something wrong happened while running the MonitorUpdateSysWithRemoteInfo monitor %s" % str(err))
+                f"Something wrong happened while running the MonitorUpdateSysWithRemoteInfo monitor {str(err)}"
+            )
+
             return False
         return True
 
@@ -556,22 +583,25 @@ class MonitorPendingUpdates(Monitor):
                 try:
                     sys_pending_updates = info['pending_updates']
                     pending_updates = pending_updates or sys_pending_updates
-                    logger.info("Pending Updates for system %s (%s): %s" % (system_id, system_ip, sys_pending_updates))
+                    logger.info(
+                        f"Pending Updates for system {system_id} ({system_ip}): {sys_pending_updates}"
+                    )
+
                     monitor_data = {"pending_updates": sys_pending_updates}
                     self.save_data(system_id, ComponentTypes.SYSTEM, self.get_json_message(monitor_data))
                 except Exception as e:
-                    logger.error("[MonitorPendingUpdates] Error: %s" % str(e))
+                    logger.error(f"[MonitorPendingUpdates] Error: {str(e)}")
                     rt = False
                     break
             else:
-                logger.error("MonitorPendingUpdates: %s" % info)
+                logger.error(f"MonitorPendingUpdates: {info}")
                 rt = False
                 break
 
         if pending_updates:
             success, local_ip = get_system_ip_from_local()
             if not success:
-                logger.error("[MonitorPendingUpdates] Unable to get local IP: %s" % local_ip)
+                logger.error(f"[MonitorPendingUpdates] Unable to get local IP: {local_ip}")
                 return False
 
             success, is_pro = get_is_professional(local_ip)
@@ -583,7 +613,10 @@ class MonitorPendingUpdates(Monitor):
 
             success, msg = ansible_download_release_info(local_ip)
             if not success:
-                logger.error("[MonitorPendingUpdates] Unable to retrieve release info file: %s" % msg)
+                logger.error(
+                    f"[MonitorPendingUpdates] Unable to retrieve release info file: {msg}"
+                )
+
                 return False
 
         return rt
@@ -619,7 +652,7 @@ class MonitorDownloadMessageCenterMessages(Monitor):
 
         # Save a current status message for each message on the list
         success, data = load_external_messages_on_db(messages)
-        logger.info("MCServer messages donwloaded.. %s:%s" % (success, str(data)))
+        logger.info(f"MCServer messages donwloaded.. {success}:{str(data)}")
         return True
 
 
@@ -707,7 +740,6 @@ class MonitorWebUIData(Monitor):
         try:
             # Remove the previous monitor data.
             self.remove_monitor_data()
-            monitor_data = {}
             success, system_id = get_system_id_from_local()
             if not success:
                 return False
@@ -715,31 +747,20 @@ class MonitorWebUIData(Monitor):
             # Now
             now = int(time.time())
 
-            # Firstly, wizard data!
-            wizard_dict = {}
             success, start_welcome_wizard, welcome_wizard_date = get_wizard_data()
             if not success:
                 api_log.error("There was an error retrieving the wizard data")
 
-            wizard_shown = True
-            if start_welcome_wizard == 2:
-                # if difference between now and welcome_wizard_date is less
-                # than a week, display message
-                if (now - welcome_wizard_date) < 420:
-                    wizard_shown = False
-
-            wizard_dict['wizard_shown'] = wizard_shown
-            monitor_data[self.__WEB_MESSAGES['MESSAGE_WIZARD_SHOWN']] = wizard_dict
-
-            # Time to look for orphan sensors
-            orphan_sensors_dict = {}
+            wizard_shown = start_welcome_wizard != 2 or now - welcome_wizard_date >= 420
+            wizard_dict = {'wizard_shown': wizard_shown}
+            monitor_data = {self.__WEB_MESSAGES['MESSAGE_WIZARD_SHOWN']: wizard_dict}
             success, message = check_any_orphan_sensor()
             orphan_sensors = False
             if not success:
                 api_log.error(message)
                 orphan_sensors = True
 
-            orphan_sensors_dict['orphan_sensors'] = orphan_sensors
+            orphan_sensors_dict = {'orphan_sensors': orphan_sensors}
             monitor_data[self.__WEB_MESSAGES['MESSAGE_SENSOR_NOT_INSERTED']] = orphan_sensors_dict
 
             # Has the trial version expired?
@@ -749,36 +770,26 @@ class MonitorWebUIData(Monitor):
             trial_expires_2days = False
             if not success:
                 rc, pro = system_is_professional()
-                if rc:
-                    if pro:
-                        # OK, we have an error here
-                        api_log.error(message)
-                    else:
-                        pass
+                if rc and pro:
+                    # OK, we have an error here
+                    api_log.error(message)
+            elif expiration_date := expires.split('=')[1]:
+                mktime_expression = datetime.datetime.strptime(expiration_date,
+                                                               "%Y-%m-%d").timetuple()
+                expires = int(time.mktime(mktime_expression))
+
+                one_week_left = now - 604800
+                two_days_left = now - 172800
+                if expires < one_week_left:
+                    trial_expires_7days = True
+                elif expires < two_days_left:
+                    trial_expires_2days = True
+                elif expires < now:
+                    trial_expired = True
+            elif os.path.isfile("/etc/ossim/ossim.lic"):
+                api_log.warning("Valid license but no web admin user found!")
             else:
-                # expire=9999-12-31
-                expiration_date = expires.split('=')[1]
-                if expiration_date:
-                    mktime_expression = datetime.datetime.strptime(expiration_date,
-                                                                   "%Y-%m-%d").timetuple()
-                    expires = int(time.mktime(mktime_expression))
-
-                    one_week_left = now - 604800
-                    two_days_left = now - 172800
-
-                    if expires < one_week_left:
-                        trial_expires_7days = True
-                    elif expires < two_days_left:
-                        trial_expires_2days = True
-                    elif expires < now:
-                        trial_expired = True
-                    else:
-                        pass
-                else:
-                    if os.path.isfile("/etc/ossim/ossim.lic"):
-                        api_log.warning("Valid license but no web admin user found!")
-                    else:
-                        api_log.debug("Expiration date can't be determined: License file not found")
+                api_log.debug("Expiration date can't be determined: License file not found")
 
             monitor_data[self.__WEB_MESSAGES["MESSAGE_TRIAL_EXPIRED"]] = {'trial_checked': success,
                                                                           'trial_expired': trial_expired}
@@ -816,7 +827,7 @@ class MonitorWebUIData(Monitor):
                            self.get_json_message(monitor_data))
 
         except Exception as err:
-            api_log.error("Error processing WebUIData monitor information: %s" % str(err))
+            api_log.error(f"Error processing WebUIData monitor information: {str(err)}")
             return False
         return True
 
@@ -863,7 +874,7 @@ class MonitorSystemRebootNeeded(Monitor):
         """
         result, systems = get_systems()
         if not result:
-            logger.error("Cannot retrieve system info: %s" % str(systems))
+            logger.error(f"Cannot retrieve system info: {str(systems)}")
             return False
         self.remove_monitor_data()
 
@@ -1013,8 +1024,7 @@ class MonitorFeedAutoUpdates(Monitor):
 
     def get_monitor_data(self):
         try:
-            monitor_data = db_get_monitor_data(self.id)
-            if monitor_data:
+            if monitor_data := db_get_monitor_data(self.id):
                 self.monitor_data = json.loads(monitor_data[0]['data'])
             self.check_and_reset_old_data()
         except Exception as err:
@@ -1030,7 +1040,7 @@ class MonitorFeedAutoUpdates(Monitor):
             systems (dict): hosts connected
         """
         results_dict = {}
-        system_ip_to_id_map = dict((v, k) for k, v in systems.iteritems())
+        system_ip_to_id_map = {v: k for k, v in systems.iteritems()}
 
         # Reset to defaults
         self.monitor_data['error_on_update'] = False
@@ -1073,20 +1083,21 @@ class MonitorFeedAutoUpdates(Monitor):
         if status:
             pending_feed_updates = result.get(system_id, {}).get('packages', {}).get('pending_feed_updates')
         else:
-            logger.error('[MonitorFeedAutoUpdates] Failed to get status of remote updates: {}'.format(str(result)))
+            logger.error(
+                f'[MonitorFeedAutoUpdates] Failed to get status of remote updates: {str(result)}'
+            )
+
 
         return pending_feed_updates
 
     @staticmethod
     def system_could_be_updated_by_schedule(system_ip, scheduled_hour):
-        time_to_update = False
-
         status_ok, system_local_hour = get_local_time(system_ip, date_fmt='%H')
-        logger.info('[MonitorFeedAutoUpdates] System ({}) - local time is {}'.format(system_ip, system_local_hour))
-        if status_ok and int(system_local_hour) == int(scheduled_hour):
-            time_to_update = True
+        logger.info(
+            f'[MonitorFeedAutoUpdates] System ({system_ip}) - local time is {system_local_hour}'
+        )
 
-        return time_to_update
+        return bool(status_ok and int(system_local_hour) == int(scheduled_hour))
 
     def get_connected_systems_with_pending_updates(self):
         """
@@ -1102,15 +1113,18 @@ class MonitorFeedAutoUpdates(Monitor):
             directly_connected=True
         )
         if not success_get:
-            logger.error('[MonitorFeedAutoUpdates] Failed to get connected systems: {}'.format(connected_systems))
+            logger.error(
+                f'[MonitorFeedAutoUpdates] Failed to get connected systems: {connected_systems}'
+            )
+
             connected_systems = {}
         else:
-            logger.info('[MonitorFeedAutoUpdates] Connected systems: {}'.format(connected_systems))
+            logger.info(f'[MonitorFeedAutoUpdates] Connected systems: {connected_systems}')
 
         for system_id, system_ip in connected_systems.iteritems():
             if self.has_pending_feed_updates(system_id):
-                logger.info('[MonitorFeedAutoUpdates] {} has pending updates'.format(system_ip))
-                systems.update({system_id: system_ip})
+                logger.info(f'[MonitorFeedAutoUpdates] {system_ip} has pending updates')
+                systems[system_id] = system_ip
 
         return systems
 
@@ -1136,7 +1150,10 @@ class MonitorFeedAutoUpdates(Monitor):
                     upd_task.set(countdown=idx * 2)
                     pending_updates.append(upd_task)
             except Exception as exc:
-                logger.error("[MonitorFeedAutoUpdates] Failed to get list of update tasks: {}".format(str(exc)))
+                logger.error(
+                    f"[MonitorFeedAutoUpdates] Failed to get list of update tasks: {str(exc)}"
+                )
+
         return pending_updates
 
     def start(self):
@@ -1147,10 +1164,16 @@ class MonitorFeedAutoUpdates(Monitor):
 
         success_get, local_server_id = get_system_id_from_local()
         if not success_get:
-            logger.error('[MonitorFeedAutoUpdates] Cannot retrieve local system_id: {}'.format(local_server_id))
+            logger.error(
+                f'[MonitorFeedAutoUpdates] Cannot retrieve local system_id: {local_server_id}'
+            )
+
             return False
 
-        logger.info('[MonitorFeedAutoUpdates] Scheduled time for auto-updates is: {}'.format(scheduled_hour))
+        logger.info(
+            f'[MonitorFeedAutoUpdates] Scheduled time for auto-updates is: {scheduled_hour}'
+        )
+
         self.local_server_id = local_server_id
         self.get_monitor_data()  # Loads the data from the DB into monitor
         self.remove_monitor_data()  # Clean DB data
@@ -1170,7 +1193,10 @@ class MonitorFeedAutoUpdates(Monitor):
             self.monitor_data['number_of_hosts'] = len(systems_to_update) + 1  # +1 to include local server
 
             if pending_updates:
-                logger.info('[MonitorFeedAutoUpdates] Pending update tasks: {}'.format(pending_updates))
+                logger.info(
+                    f'[MonitorFeedAutoUpdates] Pending update tasks: {pending_updates}'
+                )
+
                 job_results = group(pending_updates)().join()
                 self.update_monitors_data_with_results(job_results, systems_to_update)
 

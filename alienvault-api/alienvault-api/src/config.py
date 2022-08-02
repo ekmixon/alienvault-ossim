@@ -35,50 +35,33 @@ from avconfig.ossimsetupconfig import AVOssimSetupConfigHandler
 CONFIG_FILE = "/etc/ossim/ossim_setup.conf"
 ossim_setup = AVOssimSetupConfigHandler(CONFIG_FILE)
 
+
+
 class Config(object):
     DIR = os.path.abspath(os.path.dirname(__file__))
     # Path to our database
-    SQLALCHEMY_DATABASE_URI = "mysql://%s:%s@%s/alienvault" % (ossim_setup.get_database_user(),
-                                                                                           ossim_setup.get_database_pass(),
-                                                                                           ossim_setup.get_database_db_ip())
+    SQLALCHEMY_DATABASE_URI = f"mysql://{ossim_setup.get_database_user()}:{ossim_setup.get_database_pass()}@{ossim_setup.get_database_db_ip()}/alienvault"
+
 
     SQLALCHEMY_BINDS = {
-        "status_message": "mysql://%s:%s@%s/alienvault_api" % (ossim_setup.get_database_user(),
-                                                               ossim_setup.get_database_pass(),
-                                                               ossim_setup.get_database_db_ip()),
-        "status_message_action": "mysql://%s:%s@%s/alienvault_api" % (ossim_setup.get_database_user(),
-                                                                      ossim_setup.get_database_pass(),
-                                                                      ossim_setup.get_database_db_ip()),
-        "status_action": "mysql://%s:%s@%s/alienvault_api" % (ossim_setup.get_database_user(),
-                                                              ossim_setup.get_database_pass(),
-                                                              ossim_setup.get_database_db_ip()),
-        "current_status": "mysql://%s:%s@%s/alienvault_api" % (ossim_setup.get_database_user(),
-                                                               ossim_setup.get_database_pass(),
-                                                               ossim_setup.get_database_db_ip()),
-        "logged_actions" : "mysql://%s:%s@%s/alienvault_api" % (ossim_setup.get_database_user(),
-                                                                ossim_setup.get_database_pass(),
-                                                                ossim_setup.get_database_db_ip()),
-        "monitor_data" : "mysql://%s:%s@%s/alienvault_api" % (ossim_setup.get_database_user(),
-                                                              ossim_setup.get_database_pass(),
-                                                              ossim_setup.get_database_db_ip()),
-        "celery_job" : "mysql://%s:%s@%s/alienvault_api" % (ossim_setup.get_database_user(),
-                                                            ossim_setup.get_database_pass(),
-                                                            ossim_setup.get_database_db_ip()),
-        "acid_event": "mysql://%s:%s@%s/alienvault_siem" % (ossim_setup.get_database_user(),
-                                                            ossim_setup.get_database_pass(),
-                                                            ossim_setup.get_database_db_ip()),
-        "device": "mysql://%s:%s@%s/alienvault_siem" % (ossim_setup.get_database_user(),
-                                                        ossim_setup.get_database_pass(),
-                                                        ossim_setup.get_database_db_ip()),
-        "alienvault_host":"mysql://%s:%s@%s/alienvault" % (ossim_setup.get_database_user(),
-                                                           ossim_setup.get_database_pass(),
-                                                           ossim_setup.get_database_db_ip()),
-                        }
+        "status_message": f"mysql://{ossim_setup.get_database_user()}:{ossim_setup.get_database_pass()}@{ossim_setup.get_database_db_ip()}/alienvault_api",
+        "status_message_action": f"mysql://{ossim_setup.get_database_user()}:{ossim_setup.get_database_pass()}@{ossim_setup.get_database_db_ip()}/alienvault_api",
+        "status_action": f"mysql://{ossim_setup.get_database_user()}:{ossim_setup.get_database_pass()}@{ossim_setup.get_database_db_ip()}/alienvault_api",
+        "current_status": f"mysql://{ossim_setup.get_database_user()}:{ossim_setup.get_database_pass()}@{ossim_setup.get_database_db_ip()}/alienvault_api",
+        "logged_actions": f"mysql://{ossim_setup.get_database_user()}:{ossim_setup.get_database_pass()}@{ossim_setup.get_database_db_ip()}/alienvault_api",
+        "monitor_data": f"mysql://{ossim_setup.get_database_user()}:{ossim_setup.get_database_pass()}@{ossim_setup.get_database_db_ip()}/alienvault_api",
+        "celery_job": f"mysql://{ossim_setup.get_database_user()}:{ossim_setup.get_database_pass()}@{ossim_setup.get_database_db_ip()}/alienvault_api",
+        "acid_event": f"mysql://{ossim_setup.get_database_user()}:{ossim_setup.get_database_pass()}@{ossim_setup.get_database_db_ip()}/alienvault_siem",
+        "device": f"mysql://{ossim_setup.get_database_user()}:{ossim_setup.get_database_pass()}@{ossim_setup.get_database_db_ip()}/alienvault_siem",
+        "alienvault_host": f"mysql://{ossim_setup.get_database_user()}:{ossim_setup.get_database_pass()}@{ossim_setup.get_database_db_ip()}/alienvault",
+    }
+
     # Folder where we will store the SQLAlchemy-migrate data files
     SQLALCHEMY_MIGRATE_REPO = os.path.join(DIR, 'db_repository')
-    MESSAGE_CENTER_SERVER = "messages.alienvault.com" 
+    MESSAGE_CENTER_SERVER = "messages.alienvault.com"
     MESSAGE_CENTER_PORT = 443
     MESSAGE_CENTER_PUBLIC_KEY = "/etc/alienvault/api/alienvault-message-center-public.pem"
+
 
 class ProductionConfig(Config):
     pass

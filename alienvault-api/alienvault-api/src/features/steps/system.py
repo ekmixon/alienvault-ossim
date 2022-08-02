@@ -35,7 +35,7 @@ from apimethods.utils import get_ip_bin_from_str, get_ip_str_from_bytes, get_byt
 IFF_PROMISC = 0x100
 
 @behave.then('The JSON response is equals to properties of system list')
-def then_verify_server_list (context):
+def then_verify_server_list(context):
     j = json.loads(context.result.getvalue())
     servers = [(
                    unicode(x.serialize.get("uuid")),
@@ -45,8 +45,8 @@ def then_verify_server_list (context):
                                x.serialize.get("profile").split(','))))
                ) for x in db.session.query(System).all()]
     s = [(k,v['admin_ip'],v['hostname'],str(set(v['profile'].split(',')))) for k,v in  j['data']['systems'].items()]
-    print ("DB => " + str(servers))
-    print ("API => " + str(s))
+    print(f"DB => {servers}")
+    print(f"API => {s}")
     assert set(servers) == set(s) and len(s) == len(servers), "The servers list from database different from API"
 
 @behave.given('I select the uuid for random system and store it in variable "{var_name}"')

@@ -50,29 +50,29 @@ def ansible_run_nmap_scan(sensor_ip, target, scan_type, rdns, scan_timing, autod
     Returns:
         A tuple (success|error, data | msgerror)
     """
-    args = "target=%s" % target
+    args = f"target={target}"
     if scan_type is not None:
-        args += " scan_type=%s" % scan_type
+        args += f" scan_type={scan_type}"
     if rdns is not None:
-        args += " rdns=%s" % str(rdns).lower()
+        args += f" rdns={str(rdns).lower()}"
     if scan_timing is not None:
-        args += " scan_timming=%s" % scan_timing
+        args += f" scan_timming={scan_timing}"
     if autodetect is not None:
-        args += " autodetect=%s" % str(autodetect).lower()
+        args += f" autodetect={str(autodetect).lower()}"
     if scan_ports is not None:
-        args += " scan_ports=%s" % scan_ports
+        args += f" scan_ports={scan_ports}"
     args += " job_id={0}".format(job_id)
     try:
         response = ansible.run_module([sensor_ip], 'av_nmap', args)
         (success, msg) = ansible_is_valid_response(sensor_ip, response)
         if not success:
-            api_log.error("[ansible_run_nmap_scan] Error: %s" % str(msg))
+            api_log.error(f"[ansible_run_nmap_scan] Error: {str(msg)}")
             return False, str(msg)
         data = ""
         if response['contacted'][sensor_ip]['data'] != '':
             data = response['contacted'][sensor_ip]['data']
     except Exception as exc:
-        api_log.error("[ansible_run_nmap_scan] Error: %s" % str(exc))
+        api_log.error(f"[ansible_run_nmap_scan] Error: {str(exc)}")
         return False, str(exc)
     return True, data
 
@@ -112,10 +112,10 @@ def ansible_nmap_stop(sensor_ip, task_id):
         response = ansible.run_module([sensor_ip], "shell", command)
         (success, msg) = ansible_is_valid_response(sensor_ip, response)
         if not success:
-            api_log.error("[ansible_nmap_stop] Error: %s" % str(msg))
+            api_log.error(f"[ansible_nmap_stop] Error: {str(msg)}")
             return False, str(msg)
     except Exception as exc:
-        api_log.error("[ansible_nmap_stop] Error: %s" % str(exc))
+        api_log.error(f"[ansible_nmap_stop] Error: {str(exc)}")
         return False, str(exc)
     return True, ""
 
@@ -127,10 +127,10 @@ def ansible_nmap_purge_scan_files(sensor_ip, task_id):
         response = ansible.run_module([sensor_ip], "shell", command)
         (success, msg) = ansible_is_valid_response(sensor_ip, response)
         if not success:
-            api_log.error("[ansible_nmap_purge_scan_files] Error: %s" % str(msg))
+            api_log.error(f"[ansible_nmap_purge_scan_files] Error: {str(msg)}")
             return False, str(msg)
     except Exception as exc:
-        api_log.error("[ansible_nmap_purge_scan_files] Error: %s" % str(exc))
+        api_log.error(f"[ansible_nmap_purge_scan_files] Error: {str(exc)}")
         return False, str(exc)
     return True, ""
 
@@ -143,6 +143,6 @@ def ansible_get_partial_results(sensor_ip, task_id):
         if not success:
             return False, dst
     except Exception as exc:
-        api_log.error("[ansible_get_partial_results] Error: %s" % str(exc))
+        api_log.error(f"[ansible_get_partial_results] Error: {str(exc)}")
         return False, str(exc)
     return True, dst

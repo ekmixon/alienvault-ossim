@@ -68,8 +68,8 @@ def get_system_config_general(system_id, no_cache=False):
                                                          })
 
     if not success:
-        api_log.error("system: get_config_general error: " + str(config_values))
-        return (False, "Cannot get general configuration info %s" % str(config_values))
+        api_log.error(f"system: get_config_general error: {str(config_values)}")
+        return False, f"Cannot get general configuration info {str(config_values)}"
 
     return (True, config_values)
 
@@ -94,8 +94,8 @@ def get_system_config_alienvault(system_id, no_cache=False):
                                                          })
 
     if not success:
-        api_log.error("system: get_config_alienvault error: " + str(config_values))
-        return (False, "Cannot get AlienVault configuration info %s" % str(config_values))
+        api_log.error(f"system: get_config_alienvault error: {str(config_values)}")
+        return False, f"Cannot get AlienVault configuration info {str(config_values)}"
 
     return (True, config_values)
 
@@ -118,22 +118,22 @@ def set_system_config(system_id, set_values):
     (success, config_values) = set_av_config(system_ip, set_values)
 
     if not success:
-        api_log.error("system: set_config_general error: " + str(config_values))
-        return (False, "Cannot set general configuration info: %s" % str(config_values))
+        api_log.error(f"system: set_config_general error: {str(config_values)}")
+        return False, f"Cannot set general configuration info: {str(config_values)}"
 
     flush_cache(namespace="system_config")
 
     if 'general_hostname' in set_values:
         success, msg = db_system_update_hostname(system_id, set_values['general_hostname'])
         if not success:
-            return (False, "Error setting values: %s" % msg)
+            return False, f"Error setting values: {msg}"
 
     new_admin_ip = None
     if 'general_admin_ip' in set_values:
         new_admin_ip = set_values['general_admin_ip']
         success, msg = db_system_update_admin_ip(system_id, set_values['general_admin_ip'])
         if not success:
-            return (False, "Error setting values: %s" % msg)
+            return False, f"Error setting values: {msg}"
 
         success, msg = ansible_add_ip_to_inventory(set_values['general_admin_ip'])
         if not success:
@@ -160,8 +160,8 @@ def get_system_sensor_configuration(system_id):
                                                          })
 
     if not success:
-        api_log.error("system: get_config_alienvault error: " + str(config_values))
-        return (False, "Cannot get AlienVault configuration info %s" % str(config_values))
+        api_log.error(f"system: get_config_alienvault error: {str(config_values)}")
+        return False, f"Cannot get AlienVault configuration info {str(config_values)}"
 
     return (True, config_values)
 
@@ -174,8 +174,8 @@ def set_system_sensor_configuration(system_id, set_values):
     (success, config_values) = set_av_config(system_ip, set_values)
 
     if not success:
-        api_log.error("system: set_config_general error: " + str(config_values))
-        return (False, "Cannot set general configuration info: %s" % str(config_values))
+        api_log.error(f"system: set_config_general error: {str(config_values)}")
+        return False, f"Cannot set general configuration info: {str(config_values)}"
     return True, "OK"
 
 

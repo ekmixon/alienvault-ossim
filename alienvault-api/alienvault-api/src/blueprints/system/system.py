@@ -59,7 +59,7 @@ blueprint = Blueprint(__name__, __name__)
 def get_systems():
     (success, system_data) = system.get_all()
     if not success:
-        current_app.logger.error("system: get_systems error: " + str(system_data))
+        current_app.logger.error(f"system: get_systems error: {str(system_data)}")
         return make_error("Cannot retrieve systems info", 500)
 
     return make_ok(systems=system_data)
@@ -72,7 +72,7 @@ def get_systems():
 def get_local_info():
     success, system_data = system.get_local_info()
     if not success:
-        current_app.logger.error("system: get_local_info error: " + str(system_data))
+        current_app.logger.error(f"system: get_local_info error: {str(system_data)}")
         return make_error("Cannot retrieve local system info", 500)
 
     return make_ok(**system_data)
@@ -85,8 +85,8 @@ def get_local_info():
 def get_system(system_id):
     (success, ip) = system.get(system_id)
     if not success:
-        current_app.logger.error("system: get_system error: " + str(ip))
-        return make_error("Cannot retrieve system %s info" % system_id, 500)
+        current_app.logger.error(f"system: get_system error: {str(ip)}")
+        return make_error(f"Cannot retrieve system {system_id} info", 500)
 
     return make_ok(info=ip)
 
@@ -97,12 +97,12 @@ def get_system(system_id):
 @accepted_url({'system_ip': str, 'password': str})
 def add_system():
     if not is_valid_ipv4(request.form['system_ip']):
-        return make_bad_request("Bad system_ip: %s" % request.form['system_ip'])
+        return make_bad_request(f"Bad system_ip: {request.form['system_ip']}")
 
     (success, system_data) = system.add_system_from_ip(request.form['system_ip'],
                                                        request.form['password'])
     if not success:
-        current_app.logger.error("system: add_system error: " + str(system_data))
+        current_app.logger.error(f"system: add_system error: {str(system_data)}")
         return make_error(system_data, 500)
 
     return make_ok(**system_data)
@@ -115,7 +115,7 @@ def add_system():
 def delete_system(system_id):
     success, msg = system.apimethod_delete_system(system_id)
     if not success:
-        error_msg = "An error occurred while deleting the system <%s>: %s" % (system_id, msg)
+        error_msg = f"An error occurred while deleting the system <{system_id}>: {msg}"
         return make_error(error_msg, 500)
     return make_ok(message=msg)
 
@@ -170,9 +170,9 @@ def put_system_update(system_id):
     """
     (success, job_id) = asynchronous_update(system_id, only_feed=False)
     if not success:
-        error_msg = "Cannot update system %s" % system_id
-        api_log.error(error_msg + ": %s" % job_id)
-        error_msg = error_msg + ". Please verify that the system is reachable."
+        error_msg = f"Cannot update system {system_id}"
+        api_log.error(error_msg + f": {job_id}")
+        error_msg = f"{error_msg}. Please verify that the system is reachable."
         return make_error(error_msg, 500)
 
     return make_ok(job_id=job_id)
@@ -210,8 +210,8 @@ def put_system_update_feed(system_id):
     """
     (success, job_id) = asynchronous_update(system_id, only_feed=True)
     if not success:
-        error_msg = "Cannot update system %s" % system_id
-        api_log.error(error_msg + ": %s" % job_id)
+        error_msg = f"Cannot update system {system_id}"
+        api_log.error(error_msg + f": {job_id}")
         error_msg += ". Please verify that the system is reachable."
         return make_error(error_msg, 500)
 
@@ -270,7 +270,8 @@ def get_tasks(system_id):
     """
     success, tasks = check_update_and_reconfig_status(system_id)
     if not success:
-        error_msg = "Cannot retrieve task status for system %s. Please verify that the system is reachable." % system_id
+        error_msg = f"Cannot retrieve task status for system {system_id}. Please verify that the system is reachable."
+
         return make_error(error_msg, 500)
 
     return make_ok(tasks=tasks)
@@ -297,10 +298,13 @@ def get_last_log_lines(system_id):
     lines = request.args.get("lines")
 
     success, msg = system.get_last_log_lines(system_id, log_file, int(lines))
-    if not success:
-        return make_error("Cannot get log lines for given file: %s" % str(msg), 500)
-
-    return make_ok(lines=msg)
+    return (
+        make_ok(lines=msg)
+        if success
+        else make_error(
+            f"Cannot get log lines for given file: {str(msg)}", 500
+        )
+    )
 
 
 @blueprint.route('/asec', methods=['PUT'])
@@ -325,12 +329,12 @@ def sync_asec_plugins():
         if not success:
             all_ok = False
             failed_plugins.append(plugin)
-            api_log.error("Sync failed for plugin %s: %s" % (plugin, msg))
+            api_log.error(f"Sync failed for plugin {plugin}: {msg}")
         else:
-            api_log.debug("Sync OK for plugin %s" % plugin)
+            api_log.debug(f"Sync OK for plugin {plugin}")
 
     if not all_ok:
-        error_msg = "ASEC plugins sync failed for plugins: %s" % ','.join(failed_plugins)
+        error_msg = f"ASEC plugins sync failed for plugins: {','.join(failed_plugins)}"
         return make_error(error_msg, 500)
 
     return make_ok(msg="ASEC plugins sync OK")
@@ -386,7 +390,7 @@ def set_certificate(system_id):
 
     success, job_id = set_system_certificate(system_id=system_id, crt=crt, pem=pem, ca=ca)
     if not success:
-        current_app.logger.error("system: set_certificate error: " + str(job_id))
+        current_app.logger.error(f"system: set_certificate error: {str(job_id)}")
         return make_error(str(job_id), 500)
 
     return make_ok(job_id=job_id)

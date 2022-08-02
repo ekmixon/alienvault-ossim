@@ -43,24 +43,54 @@ def restore_db(sqlfilename):
     return rt, sqlfilename
 
 
-def backup_database_tables (context,filename,*args):
+def backup_database_tables(context,filename,*args):
     # Backup each table to filename
     with open(filename,"w") as f:
-        ret = call(["/usr/bin/mysqldump",
-                "-u%s" % context.dbuser,
-                "-p%s" % context.dbpass,
-               "-h%s" % context.dbip,
-               "--hex-blob",
-               "-r%s" % filename,
-                "alienvault_api"] +  list(args))
+        ret = call(
+            (
+                [
+                    "/usr/bin/mysqldump",
+                    f"-u{context.dbuser}",
+                    f"-p{context.dbpass}",
+                    f"-h{context.dbip}",
+                    "--hex-blob",
+                    f"-r{filename}",
+                    "alienvault_api",
+                ]
+                + list(args)
+            )
+        )
+
 
     assert_equal (0, ret, "Can't dump tables")
 
-def restore_database_tables (context,filename):
-        ret = call("/usr/bin/mysql " + " " +  \
-                "-u%s" % context.dbuser + " " + \
-                "-p%s" % context.dbpass + " " + \
-                "-h%s" % context.dbip + " "+ \
-                "alienvault_api < %s" % filename,shell=True)
+def restore_database_tables(context,filename):
+    ret = call(
+        (
+            (
+                (
+                    (
+                        (
+                            (
+                                (
+                                    "/usr/bin/mysql "
+                                    + " "
+                                    + f"-u{context.dbuser}"
+                                )
+                                + " "
+                            )
+                            + f"-p{context.dbpass}"
+                        )
+                        + " "
+                    )
+                    + f"-h{context.dbip}"
+                )
+                + " "
+            )
+            + f"alienvault_api < {filename}"
+        ),
+        shell=True,
+    )
 
-        assert_equal (0,ret, "Can't restore database")
+
+    assert_equal (0,ret, "Can't restore database")

@@ -255,7 +255,7 @@ class PluginFile(ConfigParser):
     def _write_headers(self, fp, headers=None):
         headers = headers or self._headers
         for header in headers:
-            fp.write("{}\n".format(header))
+            fp.write(f"{header}\n")
         fp.write("\n")
 
     def write(self, fp):
@@ -265,18 +265,18 @@ class PluginFile(ConfigParser):
             fp: (obj) Open file.
         """
         if self._defaults:
-            fp.write("[{}]\n".format(DEFAULTSECT))
+            fp.write(f"[{DEFAULTSECT}]\n")
             for (key, value) in self._defaults.items():
                 fp.write("{}={}\n".format(key, str(value).replace('\n', '\n\t')))
             fp.write("\n")
         for section in self._sections:
-            fp.write("[{}]\n".format(section))
+            fp.write(f"[{section}]\n")
             for (key, value) in self._sections[section].items():
                 if key == "__name__":
                     continue
                 if (value is not None) or (self._optcre == self.OPTCRE):
                     key = "=".join((key, str(value).replace('\n', '\n\t')))
-                fp.write("{}\n".format(key))
+                fp.write(f"{key}\n")
             fp.write("\n")
 
     def save(self, destination, vendor="", model="", version="-", product_type=None):
@@ -292,9 +292,12 @@ class PluginFile(ConfigParser):
         try:
             # extend headers with the vendor-model-version info just before saving
             # in order to eliminate possibility to add the same header multiple times.
-            headers_with_extra_data = list()
+            headers_with_extra_data = []
             headers_with_extra_data.extend(self._headers)
-            headers_with_extra_data.extend(['# Plugin Selection Info:', '# {}:{}:{}'.format(vendor, model, version)])
+            headers_with_extra_data.extend(
+                ['# Plugin Selection Info:', f'# {vendor}:{model}:{version}']
+            )
+
 
             # save .cfg file
             with open(destination, 'w') as config_file:
@@ -311,13 +314,16 @@ class PluginFile(ConfigParser):
         translate2_regex = re.compile(".*(\{translate2\(\$(?P<ruleid>[^\)]+)\,\$(?P<section_name>[^\)]+)\)\})",
                                       re.UNICODE)
         with open(self.plugin_file, "r") as f:
-            for line in f.readlines():
+            for line in f:
                 data = translate2_regex.match(line)
                 if data is not None:
                     for key, value in data.groupdict().iteritems():
-                        if key == "section_name":
-                            if value not in self.translate2_sections and self.has_section(value):
-                                self.append_translate2_section(value)
+                        if (
+                            key == "section_name"
+                            and value not in self.translate2_sections
+                            and self.has_section(value)
+                        ):
+                            self.append_translate2_section(value)
 
     def check(self):
         """Runs the plugin checks
@@ -415,9 +421,8 @@ class PluginFile(ConfigParser):
         regex = re.compile('\[(?P<header>[^]]+)\]')
         rules = {}
         for line in plugin_file_data:
-            dd = regex.match(line)
-            if dd:
-                section_name = dd.group('header')
+            if dd := regex.match(line):
+                section_name = dd['header']
                 if section_name.lower() not in PluginFile.SECTIONS_NOT_RULES:
                     if section_name not in rules:
                         rules[section_name] = 1
@@ -440,39 +445,42 @@ class PluginFile(ConfigParser):
     def __get_rules_hash(self):
         """Returns a plugin rules hash
         """
-        rules = {}
-        for section in sorted(self.sections()):
-            if section.lower() not in PluginFile.SECTIONS_NOT_RULES + self.translate2_sections:
-                rules[section] = self.__hitems(section, True)
-        return rules
+        return {
+            section: self.__hitems(section, True)
+            for section in sorted(self.sections())
+            if section.lower()
+            not in PluginFile.SECTIONS_NOT_RULES + self.translate2_sections
+        }
 
     def __get_plugin_rules(self):
         """Returns a hash table of PluginRule Objects
         """
         rules = self.__get_rules_hash()
-        plugin_rules = {}
         has_translation_section = self.has_section("translation")
         has_user_custom_function_file = self.has_option('config', 'custom_functions_file')
-        for rule_name, rule_data in rules.iteritems():
-            plugin_rules[rule_name] = PluginRule(rule_name,
-                                                 rule_data,
-                                                 self.custom_user_functions,
-                                                 has_translation_section,
-                                                 has_user_custom_function_file,
-                                                 self.is_database_plugin(),
-                                                 self.is_wmi_log_plugin(),
-                                                 self.translate2_sections)
-        return plugin_rules
+        return {
+            rule_name: PluginRule(
+                rule_name,
+                rule_data,
+                self.custom_user_functions,
+                has_translation_section,
+                has_user_custom_function_file,
+                self.is_database_plugin(),
+                self.is_wmi_log_plugin(),
+                self.translate2_sections,
+            )
+            for rule_name, rule_data in rules.iteritems()
+        }
 
     def __hitems(self, section, braw=False):
         """same as ConfigParser.items() but returns a hash instead of a list
         @param section: Section whose items should returns to
         @param braw: Be Raw
         """
-        hashtable = {}
-        for item in self.items(section, braw):
-            hashtable[item[0]] = PluginFile.strip_value(item[1])
-        return hashtable
+        return {
+            item[0]: PluginFile.strip_value(item[1])
+            for item in self.items(section, braw)
+        }
 
     def __build_output(self):
         """Returns a python dic with all the plugin detected errors.

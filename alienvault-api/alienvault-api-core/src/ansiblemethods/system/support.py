@@ -55,20 +55,21 @@ def connect_tunnel(system_ip, case_id):
                                     extra_vars=evars,
                                     use_sudo=True)
     success, msg = ansible_is_valid_playbook_response(system_ip, response)
-    if not success:
+    if success:
+        return True, ''
         # Log all the error to api_log
         # First
-        api_log.error("ERROR: ansible.run_playbook " + msg)
-        try:
-            err = response['alienvault']['lasterror']
-            if type(err) == dict:
-                return False, response['alienvault']['lasterror'][system_ip]['msg']
-            else:
-                return False, msg
-        except KeyError:
-            return False, msg
-    else:
-        return True, ''
+    api_log.error(f"ERROR: ansible.run_playbook {msg}")
+    try:
+        err = response['alienvault']['lasterror']
+        return (
+            (False, response['alienvault']['lasterror'][system_ip]['msg'])
+            if type(err) == dict
+            else (False, msg)
+        )
+
+    except KeyError:
+        return False, msg
 
 
 def status_tunnel(system_ip):
@@ -85,9 +86,19 @@ def status_tunnel(system_ip):
     # return a list tuple with (pid, remote_port, http / ssh)
     result = []
     if len(pidlist) > 0:
-        for pid, match in [(x[0], re.match(r'.*?\s+(\d+):localhost:(\d+)\s+.*', x[1])) for x in pidlist]:
-            if match:
-                result.append({"pid": pid, "remote_port": match.group(1), "channel": "ssh" if match.group(2) == "22" else "http"})
+        result.extend(
+            {
+                "pid": pid,
+                "remote_port": match.group(1),
+                "channel": "ssh" if match.group(2) == "22" else "http",
+            }
+            for pid, match in [
+                (x[0], re.match(r'.*?\s+(\d+):localhost:(\d+)\s+.*', x[1]))
+                for x in pidlist
+            ]
+            if match
+        )
+
     return True, result
 
 
@@ -106,10 +117,7 @@ def delete_tunnel(system_ip):
                                     extra_vars=evars,
                                     use_sudo=True)
     success, msg = ansible_is_valid_playbook_response(system_ip, response)
-    if not success:
-        return False, msg
-    else:
-        return True, ''
+    return (True, '') if success else (False, msg)
 
 
 def check_support_tunnels(system_ip):
@@ -130,7 +138,4 @@ def check_support_tunnels(system_ip):
                                     extra_vars=evars,
                                     use_sudo=True)
     success, msg = ansible_is_valid_playbook_response(system_ip, response)
-    if not success:
-        return False, msg
-    else:
-        return True, 'Clean up ok'
+    return (True, 'Clean up ok') if success else (False, msg)

@@ -61,9 +61,7 @@ class Connection(object):
 
     @property
     def connection_address(self):
-        if self.__sock is not None:
-            return self.__sock.getsockname()
-        return None
+        return self.__sock.getsockname() if self.__sock is not None else None
 
     @property
     def ip(self):
@@ -78,13 +76,16 @@ class Connection(object):
 
         while self.__sock is None and self.__wait < MAX_WAIT and self.__tries < MAX_TRIES:
 
-            api_log.debug("Connection [%s:%s] - Trying to connect ... " % (self.ip, self.port ))
+            api_log.debug(f"Connection [{self.ip}:{self.port}] - Trying to connect ... ")
             # Create a new socket
 
             try:
                 plain_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             except Exception as err:
-                api_log.error("Connection [%s:%s] - Cannot create a new socket %s" % (self.ip, self.port, str(err)))
+                api_log.error(
+                    f"Connection [{self.ip}:{self.port}] - Cannot create a new socket {str(err)}"
+                )
+
                 self.__tries += 1
                 self.__wait += default_wait
                 time.sleep(default_wait)
@@ -98,7 +99,10 @@ class Connection(object):
 
             self.__sock = plain_sock
             try:
-                api_log.debug("Connection [%s:%s] - Connect using plain socket" % (self.ip, self.port))
+                api_log.debug(
+                    f"Connection [{self.ip}:{self.port}] - Connect using plain socket"
+                )
+
                 self.__sock.connect((self.__ip, self.__port))
             except Exception as err:
                 api_log.error("Connection [%s:%s] - Cannot establish a plain connection"
@@ -109,7 +113,10 @@ class Connection(object):
                 time.sleep(default_wait)
                 continue
             else:
-                api_log.error("Connection [%s:%s] - Plain socket connected..." % (self.ip, self.port))
+                api_log.error(
+                    f"Connection [{self.ip}:{self.port}] - Plain socket connected..."
+                )
+
                 self.__connected = True
 
         return self.__connected
@@ -127,10 +134,17 @@ class Connection(object):
                 self.__sock.sendall(data)
             success = True
         except (socket.error, socket.herror, socket.gaierror, socket.timeout, IOError) as err:
-            api_log.error("Connection [%s:%s] - Connection  failed. ERROR: %s" % (self.__ip, self.__port, str(err)))
+            api_log.error(
+                f"Connection [{self.__ip}:{self.__port}] - Connection  failed. ERROR: {str(err)}"
+            )
+
             self.close()
         except Exception as exc:
-            api_log.error("Connection [%s:%s] - Error sending data '%s'" % (self.ip, self.port, str(data)))
+            api_log.error(
+                "Connection [%s:%s] - Error sending data '%s'"
+                % (self.ip, self.port, data)
+            )
+
             self.close()
         finally:
             self.__send_lock.release()
@@ -155,12 +169,12 @@ class Connection(object):
                     else:
                         ans += chunk
         except socket.timeout:
-            api_log.error("Connection [%s:%s]  timeout" % (self.ip, self.port))
+            api_log.error(f"Connection [{self.ip}:{self.port}]  timeout")
         except (socket.error, socket.herror, socket.gaierror, IOError) as err:
-            api_log.error("Connection [%s:%s] - Connection failed" % (self.__ip, self.__port))
+            api_log.error(f"Connection [{self.__ip}:{self.__port}] - Connection failed")
             self.close()
         except Exception as err:
-            api_log.error("Connection [%s:%s] - Error receiving data" % (self.__ip, self.__port))
+            api_log.error(f"Connection [{self.__ip}:{self.__port}] - Error receiving data")
             self.close()
         finally:
             self.__rcv_lock.release()

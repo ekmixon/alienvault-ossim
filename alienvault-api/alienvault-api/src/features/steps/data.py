@@ -44,17 +44,17 @@ def then_verify_current_status(context):
     j = json.loads(context.result.getvalue())
     # By default, we return ONLY 50
     assert_equal (len(q),int(j['data']['total']))
-    
+
     # Verify the json
     for m in j['data']['messages']:
         #Verify if the message is in the databas
         try:
             q = db.session.query(Current_Status).filter(Current_Status.message_id == uuid.UUID(m['message_id']).bytes, Current_Status.component_id == uuid.UUID(m['component_id']).bytes).one()
-        
-        except  NoResultFound:
-            assert "No result for message_id == %s" % str(m['message_id'])
-        except  MultipleResultsFound:
-            assert "Multiple results for message_id = %s" % str(m['message_id'])
+
+        except NoResultFound:
+            assert f"No result for message_id == {str(m['message_id'])}"
+        except MultipleResultsFound:
+            assert f"Multiple results for message_id = {str(m['message_id'])}"
         # Verify the fields
         data = q.serialize
         print (data)
@@ -73,7 +73,7 @@ def then_verify_current_status(context):
         assert_equal(data['component_ip'], m['component_ip'])
         mip = m['component_ip'].split(',')
         for ip in data['component_ip'].split(','):
-            assert ip in mip,"Bad ip in message response"  
+            assert ip in mip,"Bad ip in message response"
         assert_equal (data['component_name'],m['component_name'])
         assert_equal(
             data['creation_time'].strftime("%Y-%m-%d %H:%M:%S"),
@@ -124,7 +124,7 @@ def when_select_random_asset (context,var_uuid):
                 'sensor': str(uuid.UUID(db.session.query(Sensor).order_by(func.rand()).limit(1).one().serialize['id'])),
                 'system': str(uuid.UUID(db.session.query(System).order_by(func.rand()).limit(1).one().serialize['uuid'])),
                 'server': str(uuid.UUID(db.session.query(Server).order_by(func.rand()).limit(1).one().serialize['id'])),
-    
+
           }.get(asset)
         except NoResultFound:
             l.remove (asset)
@@ -226,7 +226,9 @@ def then_verify_list_level(context,var_list):
     j = json.loads(context.result.getvalue())
     sts = var_list.split(",")
     for entry in j['data']['messages']:
-        assert entry['message_level'] in sts,"Level %s not in list" % entry['message_level']
+        assert (
+            entry['message_level'] in sts
+        ), f"Level {entry['message_level']} not in list"
 
 
     
@@ -267,7 +269,7 @@ def given_gen_status_message(context,var_n):
     assert int(var_n) <= total_msg, "We don't have enought messages and asset to generate %d current_status entries " % int(var_n)
     while total < int(var_n):
         ctype = random.choice (['net','host','user','sensor','server','system'])
-        
+
         entry = Current_Status()
         try:
             c_id = {
@@ -277,7 +279,7 @@ def given_gen_status_message(context,var_n):
                 'sensor': str(uuid.UUID(db.session.query(Sensor).order_by(func.rand()).limit(1).one().serialize['id'])),
                 'system': str(uuid.UUID(db.session.query(System).order_by(func.rand()).limit(1).one().serialize['uuid'])),
                 'server':  str(uuid.UUID(db.session.query(Server).order_by(func.rand()).limit(1).one().serialize['id'])),
-    
+
           }.get(ctype)
         except NoResultFound:
            assert None,"Can't load a asset of type '%s'" % ctype
@@ -297,10 +299,10 @@ def given_gen_status_message(context,var_n):
         q = db.session.query(Current_Status).filter(and_( Current_Status.message_id == entry.message_id, Current_Status.component_id == entry.component_id)).all()
         if len(q) > 0:
             continue
-        db.session.begin() 
+        db.session.begin()
         db.session.merge(entry)
         db.session.commit()
-        total = total + 1
+        total += 1
 
 
 @behave.given(u'I generate "{var_n}" current_status entries of type "{var_type}"') # The host and net must exists in each table')

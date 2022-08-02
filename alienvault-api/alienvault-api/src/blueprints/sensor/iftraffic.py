@@ -51,7 +51,6 @@ blueprint = Blueprint(__name__, __name__)
 def traffic_stats(sensor_id):
     # Check for delay
     errmsg = "Internal Error"
-    errcode = 500
     error = True
     # We need to obtain the system_id from the sensor_id
 
@@ -64,11 +63,10 @@ def traffic_stats(sensor_id):
         error = False
     else:
         errmsg = "Can't start task .check_traffic_get_rx_stats param system_id = " + sensor_id
-    if error:
-        current_app.logger.error("iftraffic: traffic_stats error: " % errmsg)
-        return make_error(errmsg, errcode)
-    else:
+    if not error:
         return make_ok(data={'sensor_id':sensor_id, 'jobid' : result.id})
+    current_app.logger.error("iftraffic: traffic_stats error: " % errmsg)
+    return make_error(errmsg, 500)
 
 
 

@@ -58,45 +58,50 @@ ansible = Ansible()
 
 def get_iface_list(system_ip):
     """Returns the interface list for a given ip"""
-    dresult = {}
-    host_list = []
-    host_list.append(system_ip)
+    host_list = [system_ip]
     response = ansible.run_module(host_list, "av_setup", "")
 
     if system_ip in response['dark']:
         return (False, "Error getting interfaces: " + response['dark'][system_ip]['msg'])
-    else:
-        # Get admin network information.
-        data_to_retrieve = {'general_interface': '', 'sensor_interfaces': ''}
+    # Get admin network information.
+    data_to_retrieve = {'general_interface': '', 'sensor_interfaces': ''}
 
-        success, av_config_response = get_av_config(system_ip, data_to_retrieve)
+    success, av_config_response = get_av_config(system_ip, data_to_retrieve)
 
-        if not success:
-            return False, "Error trying to read administrative interface: %s" % str(av_config_response)
-        admin_interface = av_config_response.get('general_interface', '')
-        sensor_interfaces = av_config_response.get('sensor_interfaces', '')
+    if not success:
+        return (
+            False,
+            f"Error trying to read administrative interface: {str(av_config_response)}",
+        )
+
+    admin_interface = av_config_response.get('general_interface', '')
+    sensor_interfaces = av_config_response.get('sensor_interfaces', '')
+    dresult = {}
         # Check for the promisc flag
-        for iface in response['contacted'][system_ip]['ansible_facts']['ansible_interfaces']:
+    for iface in response['contacted'][system_ip]['ansible_facts']['ansible_interfaces']:
             #This only works on Linux
-            iface_data = response['contacted'][system_ip]['ansible_facts']['ansible_' + iface]
-            dresult[iface] = {'promisc': iface_data['promisc']}
-            if iface_data.has_key('ipv4'):
-                dresult[iface]['ipv4'] = copy.deepcopy(iface_data['ipv4'])
+        iface_data = response['contacted'][system_ip]['ansible_facts'][
+            f'ansible_{iface}'
+        ]
 
-            dresult[iface]['role'] = 'disabled'
+        dresult[iface] = {'promisc': iface_data['promisc']}
+        if iface_data.has_key('ipv4'):
+            dresult[iface]['ipv4'] = copy.deepcopy(iface_data['ipv4'])
 
-            if iface != 'lo':
-                # Is this the admin interface?
-                if iface == admin_interface:
-                    dresult[iface]['role'] = 'admin'
-                # Is this a monitoring interface?
-                elif iface in sensor_interfaces:
-                    dresult[iface]['role'] = 'monitoring'
-                # Is this a log management interface?
-                elif iface_data['active'] == True and 'ipv4' in iface_data: 
-                    dresult[iface]['role'] = 'log_management'
+        dresult[iface]['role'] = 'disabled'
 
-        return (True, dresult)
+        if iface != 'lo':
+            # Is this the admin interface?
+            if iface == admin_interface:
+                dresult[iface]['role'] = 'admin'
+            # Is this a monitoring interface?
+            elif iface in sensor_interfaces:
+                dresult[iface]['role'] = 'monitoring'
+            # Is this a log management interface?
+            elif iface_data['active'] == True and 'ipv4' in iface_data: 
+                dresult[iface]['role'] = 'log_management'
+
+    return (True, dresult)
 
 
 def get_iface_stats(system_ip):
@@ -106,28 +111,26 @@ def get_iface_stats(system_ip):
     """
     dresult = {}
     response = ansible.run_module([system_ip], "av_setup","filter=ansible_interfaces")
-    if system_ip in response ['dark'] :
+    if system_ip in response ['dark']:
         return(False, "get_iface_list " + response['dark'][system_ip]['msg'])
-    else:
-        for iface in  response['contacted'][system_ip]['ansible_facts']['ansible_interfaces']:
-            devpath = "/sys/class/net/" + iface
-            (rrx, rxcontent) = read_file(system_ip, devpath + "/statistics/rx_bytes")
-            (rtx, txcontent) = read_file(system_ip, devpath + "/statistics/tx_bytes")
-            if rrx == True and rtx == True:
-                rx = int(rxcontent.rstrip(os.linesep))
-                tx = int(txcontent.rstrip(os.linesep))
-            dresult[iface] = {"RX":rx, "TX":tx}
+    for iface in response['contacted'][system_ip]['ansible_facts']['ansible_interfaces']:
+        devpath = f"/sys/class/net/{iface}"
+        (rrx, rxcontent) = read_file(system_ip, f"{devpath}/statistics/rx_bytes")
+        (rtx, txcontent) = read_file(system_ip, f"{devpath}/statistics/tx_bytes")
+        if rrx == True and rtx == True:
+            rx = int(rxcontent.rstrip(os.linesep))
+            tx = int(txcontent.rstrip(os.linesep))
+        dresult[iface] = {"RX":rx, "TX":tx}
     return(True,dresult)
 
 
 def set_iface_promisc_status(system_ip, iface, status):
     """ Calls Ansible to set the promisc flag of a interface """
-    if status:
-        flag = "promisc up"
-    else:
-        flag = "promisc"
+    flag = "promisc up" if status else "promisc"
+    response = ansible.run_module(
+        [system_ip], 'command', f'/sbin/ifconfig {iface} {flag}'
+    )
 
-    response = ansible.run_module([system_ip], 'command','/sbin/ifconfig %s %s' % (iface, flag))
     # Check error
     if system_ip in response['dark']:
         return(False, "Error setting interface promisc status: " + response['dark'][system_ip]['msg'])
@@ -145,15 +148,18 @@ def get_iface_traffic(sensor_ip, sensor_iface,timeout=2):
     @param timeout: Timeout to tshark. Default 2 seconds
     """
     try:
-        ansible_iface = "ansible_%s" % sensor_iface
-        response = ansible.run_module ([sensor_ip], 'av_setup',"filter=" + ansible_iface)
+        ansible_iface = f"ansible_{sensor_iface}"
+        response = ansible.run_module(
+            [sensor_ip], 'av_setup', f"filter={ansible_iface}"
+        )
+
         if sensor_ip in response['dark']:
             return (False,"check_iface_traffic : " +  response['dark'][sensor_ip]['msg'])
         # Get the MAC to cosntruct the filter
         ifacert = response['contacted'][sensor_ip]['ansible_facts'].get(ansible_iface,None)
         if ifacert is None:
             return (False,"get_iface_traffic: interface '%s' doesn't exists" % sensor_iface)
-        
+
         mac = ifacert.get('macaddress',None)
         if mac is None:
             return (False,"get_iface_traffic: interface '%s' doesn't have mac address" % sensor_iface)
@@ -161,7 +167,10 @@ def get_iface_traffic(sensor_ip, sensor_iface,timeout=2):
         # Construct the params
         params = "-i %s -T psml -f \"not broadcast and not multicast and not ether dst %s and not ether src %s \" -a duration:%d" % \
                  (sensor_iface,mac,mac,timeout)
-        response = ansible.run_module([sensor_ip],"command","/usr/bin/tshark " + params)
+        response = ansible.run_module(
+            [sensor_ip], "command", f"/usr/bin/tshark {params}"
+        )
+
         # Check result
         if sensor_ip in response['dark']:
             return (False,"check_iface_traffic : " +  response['dark'][sensor_ip]['msg'])
@@ -169,13 +178,18 @@ def get_iface_traffic(sensor_ip, sensor_iface,timeout=2):
         packets = parseString (response['contacted'][sensor_ip]['stdout'])
         if packets.documentElement.tagName != "psml":
             return (False,"check_iface_traffic : Bad XML response\n" + packets.toprettyxml())
-        #Check if we have packets inside
-        for children in packets.documentElement.childNodes:
-            if children.nodeType == children.ELEMENT_NODE and children.tagName == "packet":
-                return (True,{'has_traffic': True})
-        return (True,{'has_traffic': False})
+        return next(
+            (
+                (True, {'has_traffic': True})
+                for children in packets.documentElement.childNodes
+                if children.nodeType == children.ELEMENT_NODE
+                and children.tagName == "packet"
+            ),
+            (True, {'has_traffic': False}),
+        )
+
     except Exception as e:
-        return (False,"Ansible Error: " + str (e) +"\n" + traceback.format_exc())
+        return False, f"Ansible Error: {str(e)}" + "\n" + traceback.format_exc()
 
 
 def get_conf_network_interfaces(system_ip, root=None,store_path = False):
@@ -223,27 +237,42 @@ def conf_update_iface(system_ip,iface, ifconf,ipaddr,netmask,gateway,gw_paths=[]
     path = ifconf['path']
     cmd=""
     if ipaddr:
-        cmd = cmd + " set %s/address %s" % (path,ipaddr)
+        cmd += f" set {path}/address {ipaddr}"
     if netmask:
-        cmd = cmd + " set %s/netmask %s" % (path,netmask)
+        cmd += f" set {path}/netmask {netmask}"
     if gateway:
-        cmd = cmd + " set %s/gateway %s" % (path,gateway)
+        cmd += f" set {path}/gateway {gateway}"
         for (k,v) in gw_paths:
             if k != iface:
-                cmd = cmd + " rm %s/gateway " % v
+                cmd = cmd + f" rm {v}/gateway "
     # Here I need to generate the correct information
     if netmask is not None and ipaddr is not None:
-      iface_info = ipaddress.ip_interface(unicode(ipaddr + "/" + netmask))
-      cmd = cmd + " set %s/network %s" % (path, str(iface_info.network.network_address))
-      cmd = cmd + " set %s/broadcast %s" % (path, str(iface_info.network.broadcast_address))
+        iface_info = ipaddress.ip_interface(unicode(f"{ipaddr}/{netmask}"))
+        cmd = cmd + f" set {path}/network {str(iface_info.network.network_address)}"
+        cmd = (
+            cmd
+            + f" set {path}/broadcast {str(iface_info.network.broadcast_address)}"
+        )
+
     elif ipaddr is not None and ifconf.get('netmask', None) is not None:
-      iface_info = ipaddress.ip_interface(unicode(ipaddr + "/" + ifconf.get('netmask')))
-      cmd = cmd + " set %s/network %s" % (path, str(iface_info.network.network_address))
-      cmd = cmd + " set %s/broadcast %s" % (path, str(iface_info.network.broadcast_address))
+        iface_info = ipaddress.ip_interface(
+            unicode(f"{ipaddr}/" + ifconf.get('netmask'))
+        )
+
+        cmd = cmd + f" set {path}/network {str(iface_info.network.network_address)}"
+        cmd = (
+            cmd
+            + f" set {path}/broadcast {str(iface_info.network.broadcast_address)}"
+        )
+
     elif netmask is not None and ifconf.get('address', None) is not None:
-      iface_info = ipaddress.ip_interface(unicode(ifconf.get('address') + "/" + netmask))
-      cmd = cmd + " set %s/network %s" % (path, str(iface_info.network.network_address))
-      cmd = cmd + " set %s/broadcast %s" % (path, str(iface_info.network.broadcast_address))
+        iface_info = ipaddress.ip_interface(unicode(ifconf.get('address') + "/" + netmask))
+        cmd = cmd + f" set {path}/network {str(iface_info.network.network_address)}"
+        cmd = (
+            cmd
+            + f" set {path}/broadcast {str(iface_info.network.broadcast_address)}"
+        )
+
     #
     response = ansible.run_module(host_list=[system_ip],
                                   module="av_augeas",
@@ -256,9 +285,9 @@ def conf_update_iface(system_ip,iface, ifconf,ipaddr,netmask,gateway,gw_paths=[]
 
 def conf_new_iface(system_ip,iface,ipaddr,netmask,gateway,gw_paths=[]):
     # Generate the correct network and broadcast information
-    iface_info = ipaddress.ip_interface(unicode(ipaddr + "/" + netmask))
-    cmd = "set /files/etc/network/interfaces/auto[last()+1]/1 %s " % iface
-    cmd = cmd + "set /files/etc/network/interfaces/iface[last()+1] %s " % iface
+    iface_info = ipaddress.ip_interface(unicode(f"{ipaddr}/{netmask}"))
+    cmd = f"set /files/etc/network/interfaces/auto[last()+1]/1 {iface} "
+    cmd = cmd + f"set /files/etc/network/interfaces/iface[last()+1] {iface} "
     cmd = cmd + "set /files/etc/network/interfaces/iface[.=\\\"%s\\\"]/family inet " % iface
     cmd = cmd + "set /files/etc/network/interfaces/iface[.=\\\"%s\\\"]/method static " % iface
     cmd = cmd + "set /files/etc/network/interfaces/iface[.=\\\"%s\\\"]/address %s " % (iface,ipaddr)
@@ -272,7 +301,7 @@ def conf_new_iface(system_ip,iface,ipaddr,netmask,gateway,gw_paths=[]):
         # I want this op atomic. I'm going to make the "rm"
         for (k,v) in gw_paths:
             if k != iface:
-                cmd = cmd + " rm %s/gateway " % v
+                cmd = cmd + f" rm {v}/gateway "
 
     response = ansible.run_module(host_list=[system_ip],
         module="av_augeas",args="commands='%s' validate_filepath=no" % cmd)
@@ -298,11 +327,11 @@ def _gw_verify(iface,ipaddr=None,mask=None,gw=None,ifaces={}):
     if not (entry.get('address') or entry.get('netmask') or entry.get('gateway')):
         return False # The entry MUST BE full
     # Now , construct the network and verify the IP
-    ipiface = ipaddress.ip_interface(unicode("%s/%s" % (entry['address'],entry['netmask'])))
-    if ipaddress.ip_address(unicode(entry.get('gateway'))) in ipiface.network:
-        return True
-    else:
-        return False
+    ipiface = ipaddress.ip_interface(
+        unicode(f"{entry['address']}/{entry['netmask']}")
+    )
+
+    return ipaddress.ip_address(unicode(entry.get('gateway'))) in ipiface.network
 
 
 def set_conf_iface(system_ip,iface,ipaddr=None,netmask=None,gateway=None):
@@ -370,17 +399,20 @@ def delete_conf_iface(system_ip,iface,ifacepath=None):
             ifacepath = result[iface]['path']
     # Prepare command and exec
     # I also need the auto section. Well obtain the iface index:
-    ifindex = re.match(r'/files/etc/network/interfaces/iface\[(\d+)\]',ifacepath).group(1)
+    ifindex = re.match(
+        r'/files/etc/network/interfaces/iface\[(\d+)\]', ifacepath
+    )[1]
+
     response=ansible.run_module([system_ip],module="av_augeas",args="commands='rm %s  rm /files/etc/network/interfaces/auto/*[.=\\\"%s\\\"] rm /files/etc/network/interfaces/auto[count(*)=0]'  validate_filepath=no" % (ifacepath,iface))
     if system_ip in response['dark']:
         return (False, response['dark'][system_ip]['msg'])
     elif response['contacted'][system_ip].get('failed',False) == True:
         return (False, response['contacted'][system_ip])
 
-        
-        
+
+
     else:
-        return (True,"iface %s deleted from /etc/network/interfaces" % iface)
+        return True, f"iface {iface} deleted from /etc/network/interfaces"
 
 
 def resolve_dns_name(system_ip, dns_name):
@@ -389,21 +421,27 @@ def resolve_dns_name(system_ip, dns_name):
     @param dns_name: name to resolve
     @return A tuple (sucess|error, data|msgerror)
     """
-    response = ansible.run_module(host_list=[system_ip],
-                                  module="shell",
-                                  args="executable=/bin/bash host %s" % dns_name)
+    response = ansible.run_module(
+        host_list=[system_ip],
+        module="shell",
+        args=f"executable=/bin/bash host {dns_name}",
+    )
+
     if system_ip in response['dark']:
-        api_log.error("resolve_dns_name:  %s" % response['dark'])
-        return (False, "Error connecting to %s" % system_ip)
+        api_log.error(f"resolve_dns_name:  {response['dark']}")
+        return False, f"Error connecting to {system_ip}"
 
     data = (response['contacted'][system_ip]['rc'] == 0)
     return (True, data)
 
 
 def get_fqdn(system_ip, host_ip):
-    response = ansible.run_module(host_list=[system_ip],
-                                  module="shell",
-                                  args='executable=/bin/bash nslookup %s' % host_ip)
+    response = ansible.run_module(
+        host_list=[system_ip],
+        module="shell",
+        args=f'executable=/bin/bash nslookup {host_ip}',
+    )
+
     data = response['contacted'][system_ip]['stdout']
     if "name =" not in data:
         return ''
@@ -412,16 +450,18 @@ def get_fqdn(system_ip, host_ip):
 
 
 def show_vpn_offline_instructions(node_configuration_path, remote_system_ip):
-    offline_info = """
+    return """
     Currently there is no connectivity with  the remote AlienVault appliance. The steps to deploy the VPN client manually are the following:
      * A new VPN configuration file has been created for the remote AlienVault appliance at: {0}.
      * Copy this configuration file to the remote AlienVault appliance at /etc/alienvault/network/ folder
      * Go to 'AlienVault console' on the remote AlienVault appliance
      * Go to System Preferences / Configure Network / Setup VPN / Configure VPN client from file and select the VPN configuration file
      * Finally, once the VPN connection has been established, please add the remote AlienVault appliance from the Configuration > Deployment menu option on the web UI
-    """.format(node_configuration_path, remote_system_ip,  os.path.basename(node_configuration_path))
-
-    return offline_info
+    """.format(
+        node_configuration_path,
+        remote_system_ip,
+        os.path.basename(node_configuration_path),
+    )
 
 
 def make_tunnel(system_ip, local_server_id, password=""):

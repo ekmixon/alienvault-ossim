@@ -90,9 +90,7 @@ class MonitorPlatformTelemetryData(Monitor):
             response = PROXY.open(request, timeout=30, retries=1)
         except Exception as e:
             # 404 means there is connection with the server
-            if str(e) == "HTTP Error 404: NOT FOUND":
-                pass
-            else:
+            if str(e) != "HTTP Error 404: NOT FOUND":
                 return False
         return True
 
@@ -102,14 +100,14 @@ class MonitorPlatformTelemetryData(Monitor):
         """
         try:
             payload = json.dumps({'data': data})
-            url = url + '/%s/%s/%s' % ('platform_report', system_id, int(time.time()))
+            url = url + f'/platform_report/{system_id}/{int(time.time())}'
             request = urllib2.Request(url)
             request.add_data(payload)
             request.add_header('Content-Type', 'application/json')
             response = PROXY.open(request, timeout=10)
 
         except Exception as e:
-            logger.error('Error sending telemetry data: %s' % str(e))
+            logger.error(f'Error sending telemetry data: {str(e)}')
             return False
         return True
 
@@ -161,7 +159,10 @@ class MonitorPlatformTelemetryData(Monitor):
                 'verbose': 2}
         ansible_output = get_doctor_data(system_dict.values(), args)
         if ansible_output.get('dark'):
-            logger.error('Cannot collect telemetry data: %s' % str(ansible_output.get('dark')))
+            logger.error(
+                f"Cannot collect telemetry data: {str(ansible_output.get('dark'))}"
+            )
+
             return False
 
         return self.__send_data__(local_system_id, ansible_output)

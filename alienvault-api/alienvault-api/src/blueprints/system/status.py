@@ -68,13 +68,18 @@ def get_system_status(system_id):
             system_id (str): String with system id (uuid) or local
 
     """
-    no_cache = True if request.args.get('no_cache', 'false') == 'true' else False
+    no_cache = request.args.get('no_cache', 'false') == 'true'
     success, result = only_one_call_without_caching(system_all_info)(system_id, no_cache=no_cache)
     if not success:
-        api_log.error("Cannot retrieve system status for system_id %s. Error: %s" % (system_id, str(result)))
-        api_log.error("Failed API call: remote addr = %s, host addr = %s, blueprint = %s, URL = %s" % (
-            request.remote_addr, request.host, request.blueprint, request.base_url))
-        return make_error("Cannot retrieve system status for system %s" % system_id, 500)
+        api_log.error(
+            f"Cannot retrieve system status for system_id {system_id}. Error: {str(result)}"
+        )
+
+        api_log.error(
+            f"Failed API call: remote addr = {request.remote_addr}, host addr = {request.host}, blueprint = {request.blueprint}, URL = {request.base_url}"
+        )
+
+        return make_error(f"Cannot retrieve system status for system {system_id}", 500)
     return make_ok(**result)
 
 
@@ -93,13 +98,21 @@ def get_network_status(system_id):
             system_id (str): String with system id (uuid) or local
 
     """
-    no_cache = True if request.args.get('no_cache', 'false') == 'true' else False
+    no_cache = request.args.get('no_cache', 'false') == 'true'
     success, result = only_one_call_without_caching(network_status)(system_id, no_cache=no_cache)
     if not success:
-        api_log.error("Cannot retrieve network status for system_id %s. Error: %s" % (system_id, str(result)))
-        api_log.error("Failed API call: remote addr = %s, host addr = %s, blueprint = %s, URL = %s" % (
-            request.remote_addr, request.host, request.blueprint, request.base_url))
-        return make_error("Cannot retrieve network status for system %s" % system_id, 500)
+        api_log.error(
+            f"Cannot retrieve network status for system_id {system_id}. Error: {str(result)}"
+        )
+
+        api_log.error(
+            f"Failed API call: remote addr = {request.remote_addr}, host addr = {request.host}, blueprint = {request.blueprint}, URL = {request.base_url}"
+        )
+
+        return make_error(
+            f"Cannot retrieve network status for system {system_id}", 500
+        )
+
     return make_ok(**result)
 
 
@@ -125,8 +138,8 @@ def get_remote_software_status(system_id):
 
     success, result = only_one_call_without_caching(apimethod_get_remote_software_update)(system_id, no_cache)
     if not success:
-        api_log.error("Error: " + str(result))
-        return make_error("Cannot retrieve packages status " + str(result), 500)
+        api_log.error(f"Error: {str(result)}")
+        return make_error(f"Cannot retrieve packages status {str(result)}", 500)
 
     return make_ok(**result)
 
@@ -148,13 +161,21 @@ def get_alienvault_status(system_id):
         no_cache (boolean): Flag to indicate whether load cached data or fresh one.
 
     """
-    no_cache = True if request.args.get('no_cache', 'false') == 'true' else False
+    no_cache = request.args.get('no_cache', 'false') == 'true'
     success, result = only_one_call_without_caching(alienvault_status)(system_id, no_cache=no_cache)
     if not success:
-        api_log.error("Cannot retrieve AlienVault status for system_id %s. Error: %s" % (system_id, str(result)))
-        api_log.error("Failed API call: remote addr = %s, host addr = %s, blueprint = %s, URL = %s" % (
-            request.remote_addr, request.host, request.blueprint, request.base_url))
-        return make_error("Cannot retrieve AlienVault status for system %s" % system_id, 500)
+        api_log.error(
+            f"Cannot retrieve AlienVault status for system_id {system_id}. Error: {str(result)}"
+        )
+
+        api_log.error(
+            f"Failed API call: remote addr = {request.remote_addr}, host addr = {request.host}, blueprint = {request.blueprint}, URL = {request.base_url}"
+        )
+
+        return make_error(
+            f"Cannot retrieve AlienVault status for system {system_id}", 500
+        )
+
     return make_ok(**result)
 
 
@@ -176,10 +197,18 @@ def get_alienvault_packages(system_id):
     success, result = package_list(system_id)
     if not success:
         api_log.error(
-            "Cannot retrieve installed packages status for system_id %s. Error: %s" % (system_id, str(result)))
-        api_log.error("Failed API call: remote addr = %s, host addr = %s, blueprint = %s, URL = %s" % (
-            request.remote_addr, request.host, request.blueprint, request.base_url))
-        return make_error("Cannot retrieve installed packages status for system %s" % system_id, 500)
+            f"Cannot retrieve installed packages status for system_id {system_id}. Error: {str(result)}"
+        )
+
+        api_log.error(
+            f"Failed API call: remote addr = {request.remote_addr}, host addr = {request.host}, blueprint = {request.blueprint}, URL = {request.base_url}"
+        )
+
+        return make_error(
+            f"Cannot retrieve installed packages status for system {system_id}",
+            500,
+        )
+
     return make_ok(**result)
 
 
@@ -204,8 +233,8 @@ def get_pending_packages(system_id):
     no_cache = is_json_true(no_cache)
     success, result = apimethod_get_pending_packges(system_id, no_cache)
     if not success:
-        api_log.error("Error: " + str(result))
-        return make_error("Cannot retrieve packages status " + str(result), 500)
+        api_log.error(f"Error: {str(result)}")
+        return make_error(f"Cannot retrieve packages status {str(result)}", 500)
     return make_ok(available_updates=result)
 
 
@@ -224,12 +253,12 @@ def is_system_ready_for_update(system_id):
         system_id (str): String with system id (uuid) or local
 
     """
-    is_ready = True
     ps_filters = ['openvasmd --update', 'openvasmd --rebuild', 'openvasmd: Updating', 'openvasmd: Reloading']
-    for ps_filter in ps_filters:
-        if check_if_process_is_running(system_id, ps_filter)[1]:
-            is_ready = False
-            break
+    is_ready = not any(
+        check_if_process_is_running(system_id, ps_filter)[1]
+        for ps_filter in ps_filters
+    )
+
     return make_ok(is_ready=is_ready)
 
 

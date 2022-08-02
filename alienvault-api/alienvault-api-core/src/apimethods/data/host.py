@@ -34,10 +34,7 @@ def delete_host_references(host_id):
     Remove the orphan host references
     """
     success = host_clean_orphan_ref(host_id)
-    if not success:
-        return (False, "Can't delete host %s" + host_id)
-
-    return (True, None)
+    return (True, None) if success else (False, "Can't delete host %s" + host_id)
 
 
 def delete_orphan_status_message():

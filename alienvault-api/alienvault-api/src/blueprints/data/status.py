@@ -69,12 +69,18 @@ def get_data_status_messages():
         level = level.split(',')
         valid_levels = ["info","warning","error"]
         if not set(level).issubset(valid_levels):
-            return make_bad_request("Invalid parameter level. Allowed valeus are %s" % str(valid_levels))
+            return make_bad_request(
+                f"Invalid parameter level. Allowed valeus are {valid_levels}"
+            )
+
 
     page = request.args.get('page', 1)
     if page is not None:
         if not is_valid_integer(page):
-            return make_bad_request("The parameter page (%s) is not a valid integer value" % str(page))
+            return make_bad_request(
+                f"The parameter page ({str(page)}) is not a valid integer value"
+            )
+
         page = int(page)
 
     page_row = request.args.get('page_rows', 50)
@@ -97,9 +103,7 @@ def get_data_status_messages():
                                           login_user=current_user.login,
                                           is_admin=current_user.is_admin)
 
-    if not success:
-        return make_error(data, 500)
-    return make_ok(**data)
+    return make_ok(**data) if success else make_error(data, 500)
 
 
 @blueprint.route('/stats', methods=['GET'])
@@ -114,9 +118,7 @@ def get_data_status_messages_stats():
 
     (success, data) = get_status_messages_stats(search=search, only_unread=only_unread, login_user=current_user.login, is_admin=current_user.is_admin)
 
-    if not success:
-        return make_error(data, 500)
-    return make_ok(**data)
+    return make_ok(**data) if success else make_error(data, 500)
 
 
 @blueprint.route('/<status_message_id>', methods=['PUT'])
@@ -137,12 +139,12 @@ def set_data_status_message(status_message_id):
         return make_bad_request("Invalid value for parameter suppressed")
 
     if viewed is not None:
-        viewed = True if viewed == 'true' else False
+        viewed = viewed == 'true'
         (success, data) = set_status_message_as_viewed(status_message_id, viewed)
         if not success:
             return make_error(data, 500)
     if suppressed is not None:
-        suppressed = True if suppressed == 'true' else False
+        suppressed = suppressed == 'true'
         (success, data) = set_status_message_as_suppressed(status_message_id, suppressed)
         if not success:
             return make_error(data, 500)
@@ -157,9 +159,7 @@ def set_data_status_message(status_message_id):
 def get_data_status_message_by_id(message_id):
     """Retrieves the given message id"""
     (success, data) = get_status_message_by_id(message_id, is_admin_user())
-    if not success:
-        return make_error(data, 500)
-    return make_ok(**data)
+    return make_ok(**data) if success else make_error(data, 500)
 
 
 @blueprint.route('/', methods=['POST'])

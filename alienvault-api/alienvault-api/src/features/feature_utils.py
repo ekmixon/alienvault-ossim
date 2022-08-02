@@ -4,10 +4,10 @@ import os
 
 
 def touch_file(system_ip, filename):
-    args = "touch %s" % filename
+    args = f"touch {filename}"
     a = Ansible()
     response = a.run_module(host_list=[system_ip], module="command", args=args)
-    print response
+    args = "touch %s" % filename
     try:
         if response['contacted'][system_ip]['rc']>0:
             return False
@@ -18,7 +18,7 @@ def touch_file(system_ip, filename):
     return True
 
 def remotely_copy_file(system_ip, orig, dest):
-    args = "cp %s %s" % (orig,dest)
+    args = f"cp {orig} {dest}"
     a = Ansible()
     response = a.run_module(host_list=[system_ip], module="command", args=args)
     try:
@@ -56,26 +56,29 @@ def remotely_create_sample_yml_file(system_ip):
 - /etc/ossim/agent/plugins/apache.cfg:
     DEFAULT: {cpe: 'cpe:/a:cpe_data', device: 10.9.8.13, device_id: AE298B1A-AF3F-11E3-9452-C242E4CCA549}
     config: {location: /var/log/alienvault/devices/10.9.8.13/10.9.8.13.log}"""
-    f = open("/tmp/config_test.yml","w")
-    f.write(rawfile)
-    f.close()
-    if not remotely_copy_file(system_ip, "/tmp/config_test.yml", "/etc/ossim/agent/config.yml"):
-        return False
-    return True
+    with open("/tmp/config_test.yml","w") as f:
+        f.write(rawfile)
+    return bool(
+        remotely_copy_file(
+            system_ip, "/tmp/config_test.yml", "/etc/ossim/agent/config.yml"
+        )
+    )
 
 def remotely_create_sample_client_keys_file(system_ip):
     rawfile = "001 test_agent 10.1.1.1 436f12f28757e6eb67ddfd0a226380d2c04939238eff94f21369495f1cf8e3cc"
-    f = open("/tmp/client.keys","w")
-    f.write(rawfile)
-    f.close()
-    result =  True
-    if not remotely_copy_file(system_ip, "/tmp/client.keys", "/var/ossec/etc/client.keys"):
-        result = False
+    with open("/tmp/client.keys","w") as f:
+        f.write(rawfile)
+    result = bool(
+        remotely_copy_file(
+            system_ip, "/tmp/client.keys", "/var/ossec/etc/client.keys"
+        )
+    )
+
     remotely_remove_file("127.0.0.1", "/tmp/client.keys")
     return result
 
 def remotely_remove_file(system_ip, filename):
-    args = "rm -rf %s" % filename
+    args = f"rm -rf {filename}"
     a = Ansible()
     response = a.run_module(host_list=[system_ip], module="command", args=args)
     try:
@@ -103,13 +106,13 @@ def run_system_command(cmd):
 
 def set_plugin_add_hosts():
     current_path = os.path.dirname(os.path.realpath(__file__))
-    add_sql = current_path + "/test_data/test_set_plugin_hosts.sql"
-    cmd = "/usr/bin/ossim-db < %s " % add_sql
+    add_sql = f"{current_path}/test_data/test_set_plugin_hosts.sql"
+    cmd = f"/usr/bin/ossim-db < {add_sql} "
     return run_system_command(cmd)
 
 
 def set_plugin_delete_hosts():
     current_path = os.path.dirname(os.path.realpath(__file__))
-    sql = current_path + "/test_data/test_set_plugins_delete_hosts.sql"
-    cmd ="/usr/bin/ossim-db < %s " % sql
+    sql = f"{current_path}/test_data/test_set_plugins_delete_hosts.sql"
+    cmd = f"/usr/bin/ossim-db < {sql} "
     return run_system_command(cmd)

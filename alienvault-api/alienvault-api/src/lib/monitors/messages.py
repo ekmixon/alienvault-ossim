@@ -152,9 +152,21 @@ class Message(object):
         self.__source = value
 
     def __repr__(self):
-        message_repr = '<message id=%s level="%s" type="%s" message_role="%s" action_role="%s" title="%s" description="%s" actions="%s" alternative_actions="%s" source="%s">' % \
-                (self.id, self.level, self.type, self.message_role, self.action_role, self.title, self.description, self.actions, self.alternative_actions, self.source)
-        return message_repr
+        return (
+            '<message id=%s level="%s" type="%s" message_role="%s" action_role="%s" title="%s" description="%s" actions="%s" alternative_actions="%s" source="%s">'
+            % (
+                self.id,
+                self.level,
+                self.type,
+                self.message_role,
+                self.action_role,
+                self.title,
+                self.description,
+                self.actions,
+                self.alternative_actions,
+                self.source,
+            )
+        )
 
 
 class MessageReader(object):

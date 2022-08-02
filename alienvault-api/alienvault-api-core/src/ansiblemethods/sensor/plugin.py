@@ -194,12 +194,10 @@ def get_plugin_package_version(system_ip):
     """
     command = """dpkg -s alienvault-plugin-sids | grep 'Version' | awk {'print $2'}"""
     response = ansible.run_module(host_list=[system_ip], module="shell", args=command)
-    if system_ip in response['contacted']:
-        version = response['contacted'][system_ip]['stdout'].split('\n')[0]  # Only first line
-        result = (True, version)
-    else:
-        result = (False, str(response['dark'][system_ip]))
-    return result
+    if system_ip not in response['contacted']:
+        return False, str(response['dark'][system_ip])
+    version = response['contacted'][system_ip]['stdout'].split('\n')[0]  # Only first line
+    return True, version
 
 
 def get_plugin_package_info(system_ip):
@@ -316,7 +314,7 @@ def ansible_get_agent_config_yml(sensor_ip):
     try:
         success, dst = fetch_file(sensor_ip, config_file, '/var/tmp')
     except Exception as exc:
-        api_log.error("[ansible_get_agent_config_yml] Error: %s" % str(exc))
+        api_log.error(f"[ansible_get_agent_config_yml] Error: {str(exc)}")
         return False, str(exc)
     if not os.path.exists(local_file):
         api_log.info("[ansible_get_agent_config_yml] File {0} not found in {1}".format(config_file, local_file))
@@ -337,7 +335,10 @@ def ansible_get_agent_config_yml(sensor_ip):
                             device_list[data['device_id']].append(data['pid']) # Support more than one plugin per asset
             os.remove(local_file)
         except Exception as exc:
-            api_log.error("[ansible_get_agent_config_yml] Unable to parse yml: %s" % str(exc))
+            api_log.error(
+                f"[ansible_get_agent_config_yml] Unable to parse yml: {str(exc)}"
+            )
+
             return False, str(exc)
 
     return True, device_list

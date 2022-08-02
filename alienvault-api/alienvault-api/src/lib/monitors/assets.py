@@ -52,7 +52,7 @@ def has_an_ossec_agent_active(asset_ips, sensors_ip):
     args = {'list_available_agents': '1', 'command': "manage_agents"}
     data = get_ossec_agent_data([sensors_ip], args)
     if "failed" in data:
-        logger.error("Error retrieving data from OSSEC. %s" % data)
+        logger.error(f"Error retrieving data from OSSEC. {data}")
         rt = False
     else:
         ossec_agent_connected = {}
@@ -61,8 +61,7 @@ def has_an_ossec_agent_active(asset_ips, sensors_ip):
             # data = u'\nAvailable agents: \n   ID: 001, Name: agent_w7, IP: 192.168.5.188\n\n'
             output = value['data'].split('\n')
             for line in output:
-                result = ossec_pattern.match(line)
-                if result:
+                if result := ossec_pattern.match(line):
                     result_dict = result.groupdict()
                     if 'agent_ip' in result_dict:
                         ossec_agent_connected[str(result_dict['agent_ip'])] = result_dict

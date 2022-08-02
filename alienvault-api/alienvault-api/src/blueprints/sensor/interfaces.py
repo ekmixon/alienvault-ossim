@@ -57,7 +57,10 @@ def get_sensor_interface(sensor_id):
     # Now call the ansible module to obtain the [sensor]/iface
     (success, data) = get_sensor_interfaces(sensor_ip)
     if not success:
-        current_app.logger.error("interfaces: get_sensor_interfaces_from_conf error: %s" % data)
+        current_app.logger.error(
+            f"interfaces: get_sensor_interfaces_from_conf error: {data}"
+        )
+
         return make_error("Error getting sensor interfaces", 500)
 
     # Now format the list by a dict which key is the sensor_id and the value if the list of ifaces
@@ -87,7 +90,10 @@ def put_sensor_interface(sensor_id):
     # Call the ansible module to obtain the [sensor]/iface
     (success, data) = set_sensor_interfaces(sensor_ip, ifaces)
     if not success:
-        current_app.logger.error("interfaces: put_sensor_interfaces_from_conf error: %s" % data)
+        current_app.logger.error(
+            f"interfaces: put_sensor_interfaces_from_conf error: {data}"
+        )
+
         return make_error("Error setting sensor interfaces", 500)
 
     # Now launch reconfig task

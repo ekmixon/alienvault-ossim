@@ -249,7 +249,7 @@ class PortScanner(object):
 
         args = '-sL -sn -PE -n'
         if excludes:
-            args += ' --exclude={}'.format(excludes)
+            args += f' --exclude={excludes}'
         if timing:
             args = '{0} -{1}'.format(args, timing)
         self.scan(hosts, arguments=args)

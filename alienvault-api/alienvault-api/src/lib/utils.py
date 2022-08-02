@@ -86,7 +86,7 @@ def accepted_url(url=None, func=None):
                     url_params[key] = request.form[key]
 
             url_constraints = url
-            invalid_params = [x for x in url_params.keys() if x not in url_constraints.keys()]
+            invalid_params = [x for x in url_params if x not in url_constraints.keys()]
             if invalid_params != []:
                 return make_bad_request("URL contains parameters not included in the constraint")
             for key, item in url_constraints.items():
@@ -112,12 +112,15 @@ def accepted_url(url=None, func=None):
                     # Check allowed values except for UUID
                     if item_is_dict and item_type != uuid.UUID and \
                        'values' in item and item_value not in item['values']:
-                            return make_bad_request("URL parameter %s does not meet the allowed values" % str(key)[:20])
+                        return make_bad_request(
+                            f"URL parameter {str(key)[:20]} does not meet the allowed values"
+                        )
+
 
                 except (ValueError, TypeError) as e:
-                    return make_bad_request("Invalid type %s" % str(key))
+                    return make_bad_request(f"Invalid type {str(key)}")
                 except KeyError as e:
-                    return make_bad_request("Missing parameter %s" % str(key))
+                    return make_bad_request(f"Missing parameter {str(key)}")
                 except Exception as e:
                     app.logger.error(str(e))
                     return make_bad_request("Paramerter verification failure")
@@ -130,6 +133,7 @@ def accepted_url(url=None, func=None):
         def partial_check(func):
             return accepted_url(url, func)
         return partial_check
+        return partial_check
 
 
 def has_permission(func = None):
@@ -137,7 +141,7 @@ def has_permission(func = None):
         return partial(has_permission)
 
     @wraps(func)
-    def check_permission (*args, **kwargs):
+    def check_permission(*args, **kwargs):
         allowed_check_params = ['host_id', 'host_group_id']
         url_params = kwargs
         if request.method == "POST":
@@ -145,7 +149,7 @@ def has_permission(func = None):
 
         params_to_check = {}
         params_not_to_check = {}
-        for key in url_params.keys():
+        for key in url_params:
             if key in allowed_check_params:
                 try:
                     splitted = url_params[key].split(',')
@@ -171,12 +175,15 @@ def has_permission(func = None):
         params = dict(params_not_to_check, **params_checked)
 
         return func(*args, **params)
+
+    return check_permission
     return check_permission
 
 
 def is_admin_user():
     if current_user.is_authenticated():
         return current_user.is_admin == 1 or current_user.login == 'admin'
+    return False
     return False
 
 
@@ -187,8 +194,7 @@ def is_valid_user(username):
         return False
     if username == "":
         return False
-    if valid_user_regex.match(username) is not None:
-        return True
+    return valid_user_regex.match(username) is not None
     return False
 
 
@@ -200,8 +206,7 @@ def is_valid_windows_user(username):
         return False
     if username == "":
         return False
-    if valid_windows_user_regex.match(username) is not None:
-        return True
+    return valid_windows_user_regex.match(username) is not None
     return False
 
 
@@ -215,14 +220,12 @@ def is_valid_user_password(password):
         return False
     if password == "":
         return False
-    if valid_password_regex.match(password) is not None:
-        return True
+    return valid_password_regex.match(password) is not None
     return False
 
 
 def first_init_admin_access():
-    if is_admin_user() or not has_admin_users():
-        return True
+    return bool(is_admin_user() or not has_admin_users())
 
     return False
 

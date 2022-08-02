@@ -66,8 +66,7 @@ class AVProxy:
     def __str__(self):
         """Returns an string representing the object
         """
-        return "AVProxy: system_ip:{} proxy_uri:{} proxy_user:{} proxy_pass:{}" .format(
-            self.__system_ip, self.__proxy_url, self.__proxy_user, self.__proxy_pass)
+        return f"AVProxy: system_ip:{self.__system_ip} proxy_uri:{self.__proxy_url} proxy_user:{self.__proxy_user} proxy_pass:{self.__proxy_pass}"
 
     def __read_proxy_file(self):
         """ Read the proxy curl configuration file
@@ -96,7 +95,7 @@ class AVProxy:
         if self.__read_proxy_file():
             proxy_full_url = "http://"
             if self.need_authentication():
-                proxy_full_url += "{}:{}@".format(self.__proxy_user, self.__proxy_pass)
+                proxy_full_url += f"{self.__proxy_user}:{self.__proxy_pass}@"
             proxy_full_url += self.__proxy_url
 
             self.__proxy_handler = urllib2.ProxyHandler({'http': proxy_full_url, 'https': proxy_full_url})
@@ -115,14 +114,15 @@ class AVProxy:
             proxy_digest_auth_handler = urllib2.ProxyDigestAuthHandler(password_mgr)
             proxy_ntlm_auth_handler = HTTPNtlmAuthHandler.HTTPNtlmAuthHandler(password_mgr)
 
-            opener = urllib2.build_opener(self.__proxy_handler,
-                                          proxy_basic_auth_handler,
-                                          proxy_digest_auth_handler,
-                                          proxy_ntlm_auth_handler)
-        else:
-            opener = urllib2.build_opener(self.__proxy_handler)
+            return urllib2.build_opener(
+                self.__proxy_handler,
+                proxy_basic_auth_handler,
+                proxy_digest_auth_handler,
+                proxy_ntlm_auth_handler,
+            )
 
-        return opener
+        else:
+            return urllib2.build_opener(self.__proxy_handler)
 
     def get_proxy_url(self):
         """
@@ -133,17 +133,13 @@ class AVProxy:
     def get_smart_proxy_url(self):
         """Returns proxy url for otx requests"""
         if self.need_authentication():
-            return "{}:{}@{}".format(self.__proxy_user, self.__proxy_pass, self.__proxy_url)
+            return f"{self.__proxy_user}:{self.__proxy_pass}@{self.__proxy_url}"
         return self.__proxy_url
 
     def get_proxies(self):
         """avproxy - instance of the AVProxy class"""
-        proxy_url = self.get_smart_proxy_url()
-        if proxy_url:
-            return {
-                'http': 'http://{}'.format(proxy_url),
-                'https': 'http://{}'.format(proxy_url),
-            }
+        if proxy_url := self.get_smart_proxy_url():
+            return {'http': f'http://{proxy_url}', 'https': f'http://{proxy_url}'}
         # This helper function returns a dictionary of scheme to proxy server URL mappings.
         # It scans the environment for variables named <scheme>_proxy
         return urllib.getproxies()
@@ -199,7 +195,7 @@ class AVProxy:
         try:
             response = self.open(request, timeout=timeout, retries=retries)
         except Exception as e:
-            return False, "Connection error: {}".format(e)
+            return False, f"Connection error: {e}"
 
         if response is None or response.getcode() != 200:
             return False, "Connection error"

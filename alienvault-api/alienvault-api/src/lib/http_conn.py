@@ -41,14 +41,17 @@ class HttpConn(object):
         self.conn = None
     
     def __get_headers(self):
-        headers={}
-        base64string = base64.encodestring('%s:%s' % (self.username, self.password)).replace('\n','')
-        authheader =  "Basic %s" % base64string
-        headers["Authorization"] =  authheader
-        headers["Content-type"] = "application/x-www-form-urlencoded"
-        headers["Accept"] ="application/json"
-        headers["User-Agent"] ="AlienvaultClient"
-        return headers
+        base64string = base64.encodestring(
+            f'{self.username}:{self.password}'
+        ).replace('\n', '')
+
+        authheader = f"Basic {base64string}"
+        return {
+            "Authorization": authheader,
+            "Content-type": "application/x-www-form-urlencoded",
+            "Accept": "application/json",
+            "User-Agent": "AlienvaultClient",
+        }
     
     def connect(self,username, password):
         try:

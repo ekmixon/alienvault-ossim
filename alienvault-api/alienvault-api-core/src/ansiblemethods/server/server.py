@@ -51,7 +51,11 @@ def get_remote_server_id_from_server_ip(server_ip):
                                   args=cmd)
 
     if server_ip in response['dark']:
-        return False, "Failed to get the remote server ID. %s" % response['dark'][server_ip]['msg']
+        return (
+            False,
+            f"Failed to get the remote server ID. {response['dark'][server_ip]['msg']}",
+        )
+
 
     if server_ip not in response['contacted']:
         return False, "Failed to get the remote server ID"
@@ -60,7 +64,11 @@ def get_remote_server_id_from_server_ip(server_ip):
         return False, "Failed to get the remote server ID. Server unreachable"
 
     if response['contacted'][server_ip]['stderr'] !="":
-        return False, "Failed to get the remote server ID. %s" % response['contacted'][server_ip]['stderr']
+        return (
+            False,
+            f"Failed to get the remote server ID. {response['contacted'][server_ip]['stderr']}",
+        )
+
     uuid_str = response['contacted'][server_ip]['stdout']
     try:
         server_uuid = uuid.UUID(uuid_str)
@@ -154,7 +162,7 @@ def ansible_nfsen_reconfigure(system_ip):
             success = False
             rc = response['contacted'][system_ip]['stderr']
     except Exception as exc:
-        api_log.error("ansible_nfsen_reconfigure <%s>" % str(exc))
+        api_log.error(f"ansible_nfsen_reconfigure <{str(exc)}>")
         return False, 0
 
     return success, rc

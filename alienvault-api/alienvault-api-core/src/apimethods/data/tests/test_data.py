@@ -23,7 +23,7 @@ class TestFormatMessages(unittest.TestCase):
         """
             Test Timestamp
         """
-        ts = datetime.utcnow() 
+        ts = datetime.utcnow()
         messages = [
             {'message_description':'TIMESTAMP test',
              'message_title': 'Test 1',
@@ -31,13 +31,16 @@ class TestFormatMessages(unittest.TestCase):
         ]
         format_messages(messages)
         self.assertEqual(messages[0]['message_title'],'Test 1')
-        self.assertEqual(messages[0]['message_description'],"%s UTC test" % ts.strftime("%Y-%m-%d %H:%M:%S"))
+        self.assertEqual(
+            messages[0]['message_description'],
+            f'{ts.strftime("%Y-%m-%d %H:%M:%S")} UTC test',
+        )
 
     def test_0002(self):
         """
             To much assets
         """
-        ts = datetime.utcnow() 
+        ts = datetime.utcnow()
         messages = [
             {'message_description':'TIMESTAMP test',
              'message_title': 'Test 1 NUM_ASSETS',
@@ -55,12 +58,15 @@ class TestFormatMessages(unittest.TestCase):
         #
         format_messages(messages)
         self.assertEqual(messages[0]['message_title'],'Test 1 5')
-        self.assertEqual(messages[0]['message_description'],"%s UTC test" % ts.strftime("%Y-%m-%d %H:%M:%S"))
+        self.assertEqual(
+            messages[0]['message_description'],
+            f'{ts.strftime("%Y-%m-%d %H:%M:%S")} UTC test',
+        )
     def test_0003(self):
         """
             Plugin changed
         """
-        ts = datetime.utcnow() 
+        ts = datetime.utcnow()
         messages = [
             {'message_description':'TIMESTAMP test\nPLUGINS_CHANGED\nPATH_PLUGINS_CHANGED',
              'message_title': 'Test 1',
@@ -80,7 +86,7 @@ class TestFormatMessages(unittest.TestCase):
         self.assertEqual(messages[0]['message_title'],'Test 1')
         lines = messages[0]['message_description'].split("\n")
         self.assertEqual(len(lines), 3)
-        self.assertEqual(lines[0], "%s UTC test" % ts.strftime("%Y-%m-%d %H:%M:%S"))
+        self.assertEqual(lines[0], f'{ts.strftime("%Y-%m-%d %H:%M:%S")} UTC test')
         self.assertEqual(lines[1], "plugin1.cfg, plugin2.cfg, plugin3.cfg")
         self.assertEqual(lines[2], "/etc/ossim/plugin1.cfg, /etc/ossim/plugin2.cfg, /etc/ossim/plugin3.cfg")
 
@@ -88,7 +94,7 @@ class TestFormatMessages(unittest.TestCase):
         """
             Plugin changed
         """
-        ts = datetime.utcnow() 
+        ts = datetime.utcnow()
         messages = [
             {'message_description':'TIMESTAMP test\nPLUGINS_REMOVED\nPATH_PLUGINS_REMOVED',
              'message_title': 'Test 1',
@@ -108,7 +114,7 @@ class TestFormatMessages(unittest.TestCase):
         self.assertEqual(messages[0]['message_title'],'Test 1')
         lines = messages[0]['message_description'].split("\n")
         self.assertEqual(len(lines), 3)
-        self.assertEqual(lines[0], "%s UTC test" % ts.strftime("%Y-%m-%d %H:%M:%S"))
+        self.assertEqual(lines[0], f'{ts.strftime("%Y-%m-%d %H:%M:%S")} UTC test')
         self.assertEqual(lines[1], "plugin1.cfg, plugin2.cfg, plugin3.cfg")
         self.assertEqual(lines[2], "/etc/ossim/plugin1.cfg, /etc/ossim/plugin2.cfg, /etc/ossim/plugin3.cfg")
     
@@ -116,7 +122,7 @@ class TestFormatMessages(unittest.TestCase):
         """
             check rsyslog_files_removed
         """
-        ts = datetime.utcnow() 
+        ts = datetime.utcnow()
         messages = [
             {'message_description':'TIMESTAMP test\nRSYSLOG_FILES_REMOVED\nPATH_RSYSLOG_FILES_REMOVED',
              'message_title': 'Test 1',
@@ -136,7 +142,7 @@ class TestFormatMessages(unittest.TestCase):
         self.assertEqual(messages[0]['message_title'],'Test 1')
         lines = messages[0]['message_description'].split("\n")
         self.assertEqual(len(lines), 3)
-        self.assertEqual(lines[0], "%s UTC test" % ts.strftime("%Y-%m-%d %H:%M:%S"))
+        self.assertEqual(lines[0], f'{ts.strftime("%Y-%m-%d %H:%M:%S")} UTC test')
         self.assertEqual(lines[1], "plugin1.cfg, plugin2.cfg, plugin3.cfg")
         self.assertEqual(lines[2], "/etc/ossim/plugin1.cfg, /etc/ossim/plugin2.cfg, /etc/ossim/plugin3.cfg")
 
@@ -144,7 +150,7 @@ class TestFormatMessages(unittest.TestCase):
         """
             check rsyslog_files_removed
         """
-        ts = datetime.utcnow() 
+        ts = datetime.utcnow()
         messages = [
             {'message_description':'TIMESTAMP test\nRSYSLOG_FILES_CHANGED\nPATH_RSYSLOG_FILES_CHANGED',
              'message_title': 'Test 1',
@@ -164,7 +170,7 @@ class TestFormatMessages(unittest.TestCase):
         self.assertEqual(messages[0]['message_title'],'Test 1')
         lines = messages[0]['message_description'].split("\n")
         self.assertEqual(len(lines), 3)
-        self.assertEqual(lines[0], "%s UTC test" % ts.strftime("%Y-%m-%d %H:%M:%S"))
+        self.assertEqual(lines[0], f'{ts.strftime("%Y-%m-%d %H:%M:%S")} UTC test')
         self.assertEqual(lines[1], "plugin1.cfg, plugin2.cfg, plugin3.cfg")
         self.assertEqual(lines[2], "/etc/ossim/plugin1.cfg, /etc/ossim/plugin2.cfg, /etc/ossim/plugin3.cfg")
     
@@ -174,7 +180,7 @@ class TestFormatMessages(unittest.TestCase):
             Check system
         """
         mock.return_value = True, "menzoberrazan"
-        ts = datetime.utcnow() 
+        ts = datetime.utcnow()
         messages = [
             {'message_description':'TIMESTAMP test SYSTEM_NAME',
              'message_title': 'Test 1',
@@ -183,20 +189,23 @@ class TestFormatMessages(unittest.TestCase):
                 {
                     'system_id': 'menzoberrazan'
                 }
-              
+
             }
         ]
         format_messages(messages)
         self.assertEqual(messages[0]['message_title'],'Test 1')
-        self.assertEqual(messages[0]['message_description'],"%s UTC test menzoberrazan" % ts.strftime("%Y-%m-%d %H:%M:%S"))
+        self.assertEqual(
+            messages[0]['message_description'],
+            f'{ts.strftime("%Y-%m-%d %H:%M:%S")} UTC test menzoberrazan',
+        )
 
-    @patch('apimethods.data.status.db_get_hostname') 
+    @patch('apimethods.data.status.db_get_hostname')
     def test_0008(self,mock):
         """ 
             Check system
         """
         mock.return_value = False, ""
-        ts = datetime.utcnow() 
+        ts = datetime.utcnow()
         messages = [
             {'message_description':'TIMESTAMP test SYSTEM_NAME',
              'message_title': 'Test 1',
@@ -205,19 +214,22 @@ class TestFormatMessages(unittest.TestCase):
                 {
                     'system_id': 'menzoberrazan'
                 }
-              
+
             }
         ]
         format_messages(messages)
         self.assertEqual(messages[0]['message_title'],'Test 1')
-        self.assertEqual(messages[0]['message_description'],"%s UTC test Unknown" % ts.strftime("%Y-%m-%d %H:%M:%S"))
-    @patch('apimethods.data.status.db_get_hostname') 
+        self.assertEqual(
+            messages[0]['message_description'],
+            f'{ts.strftime("%Y-%m-%d %H:%M:%S")} UTC test Unknown',
+        )
+    @patch('apimethods.data.status.db_get_hostname')
     def test_0009(self,mock):
         """ 
             Check system
         """
         mock.return_value = True, "menzoberrazan"
-        ts = datetime.utcnow() 
+        ts = datetime.utcnow()
         messages = [
             {'message_description':'TIMESTAMP test SYSTEM_NAME\nRSYSLOG_FILES_CHANGED\nPATH_RSYSLOG_FILES_CHANGED',
              'message_title': 'Test 1',
@@ -234,14 +246,17 @@ class TestFormatMessages(unittest.TestCase):
 
                 }
 
-              
+
             }
         ]
         format_messages(messages)
         self.assertEqual(messages[0]['message_title'],'Test 1')
         lines = messages[0]['message_description'].split("\n")
         self.assertEqual(len(lines), 3)
-        self.assertEqual(lines[0],"%s UTC test menzoberrazan" % ts.strftime("%Y-%m-%d %H:%M:%S"))
+        self.assertEqual(
+            lines[0], f'{ts.strftime("%Y-%m-%d %H:%M:%S")} UTC test menzoberrazan'
+        )
+
         self.assertEqual(lines[1], "plugin1.cfg, plugin2.cfg, plugin3.cfg")
         self.assertEqual(lines[2], "/etc/ossim/plugin1.cfg, /etc/ossim/plugin2.cfg, /etc/ossim/plugin3.cfg")
 

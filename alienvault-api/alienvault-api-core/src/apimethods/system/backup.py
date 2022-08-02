@@ -50,7 +50,7 @@ def get_backup_list(system_id='local',
     if not success:
         api_log.error(str(system_ip))
         error_msg = "Error retrieving the system ip for the system id "
-        error_msg = error_msg + "%s -> %s" % (system_id, str(system_ip))
+        error_msg += f"{system_id} -> {str(system_ip)}"
         return False, error_msg
 
     success, backup_files = ansible_get_backup_list(target=system_ip)
@@ -76,7 +76,8 @@ def restore_backup(system_id='local',
     success, system_ip = get_system_ip_from_system_id(system_id)
     if not success:
         api_log.error(str(system_ip))
-        error_msg = "Error retrieving the system ip for the system id %s -> %s" % (system_id, str(system_ip))
+        error_msg = f"Error retrieving the system ip for the system id {system_id} -> {str(system_ip)}"
+
         return False, error_msg
 
     backup_name = os.path.basename(backup_name)
@@ -91,12 +92,12 @@ def restore_backup(system_id='local',
                                    backup_file=backup_path,
                                    backup_pass=backup_pass)
         if not success:
-            api_log.error("restore_backup: %s" % msg)
+            api_log.error(f"restore_backup: {msg}")
             error_msg = "Error trying to restore the backup '%s': %s" % (backup_name, msg)
             return False, error_msg
 
     except Exception as e:
-        api_log.info("restore_backup Error: %s" % str(e))
+        api_log.info(f"restore_backup Error: {str(e)}")
         error_msg = "Error trying to restore the backup '%s': %s" % (backup_name, str(e))
         return False, error_msg
 
@@ -113,7 +114,8 @@ def delete_backups(system_id='local',
     success, system_ip = get_system_ip_from_system_id(system_id)
     if not success:
         api_log.error(str(system_ip))
-        error_msg = "Error retrieving the system ip for the system id %s -> %s" % (system_id, str(system_ip))
+        error_msg = f"Error retrieving the system ip for the system id {system_id} -> {str(system_ip)}"
+
         return False, error_msg
 
     success, files = get_files_in_path(system_ip=system_ip, path=BACKUP_PATH)
@@ -129,7 +131,7 @@ def delete_backups(system_id='local',
         if not success:
             api_log.error("delete_backups: %s '%s'" % (backup_path, backup_name))
         elif backup_path not in files.keys():
-            api_log.error("delete_backups: %s does not exist" % backup_path)
+            api_log.error(f"delete_backups: {backup_path} does not exist")
         else:
             existing_backup_list.append(backup_path)
 
@@ -140,11 +142,11 @@ def delete_backups(system_id='local',
                                        file_name=backup_path)
             if not success:
                 api_log.error(str(msg))
-                error_msg = "Error removing %s from system %s " % (backup_path, system_ip)
+                error_msg = f"Error removing {backup_path} from system {system_ip} "
                 return False, error_msg
 
         except Exception as e:
-            api_log.error("delete_backups Error: %s" % str(e))
+            api_log.error(f"delete_backups Error: {str(e)}")
             error_msg = "Error trying to delete the backup '%s': %s" % (backup_name, str(e))
             return False, error_msg
 
@@ -153,7 +155,8 @@ def delete_backups(system_id='local',
                         backup_type=backup_type,
                         no_cache=True)
     except Exception as e:
-        error_msg = "Error when trying to flush the cache after deleting backups: %s" % str(e)
+        error_msg = f"Error when trying to flush the cache after deleting backups: {str(e)}"
+
         api_log.error(error_msg)
 
     return success, ''

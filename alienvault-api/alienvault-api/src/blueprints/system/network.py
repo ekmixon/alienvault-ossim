@@ -51,10 +51,7 @@ def get_system_network_interfaces(system_id):
     Return a list of system network interfaces
     """
     (success, data) = get_interfaces(system_id)
-    if not success:
-        return make_error(data, 500)
-
-    return make_ok(interfaces=data)
+    return make_ok(interfaces=data) if success else make_error(data, 500)
 
 
 @blueprint.route('/<system_id>/network/interface', methods=['PUT'])
@@ -69,10 +66,7 @@ def set_system_interfaces_roles(system_id):
         return make_bad_request("Bad parameter data")
 
     (success, data) = set_interfaces_roles(system_id, interfaces)
-    if not success:
-        return make_error(data, 500)
-
-    return make_ok(jobid=data)
+    return make_ok(jobid=data) if success else make_error(data, 500)
 
 
 @blueprint.route('/<system_id>/network/interface/<iface>', methods=['GET'])
@@ -81,10 +75,7 @@ def set_system_interfaces_roles(system_id):
 @accepted_url({'system_id': {'type': UUID, 'values': ['local']}, 'iface': str})
 def get_system_network_interface(system_id, iface):
     (success, data) = get_interface(system_id, iface)
-    if not success:
-        return make_error(data, 500)
-
-    return make_ok(interface=data)
+    return make_ok(interface=data) if success else make_error(data, 500)
 
 
 @blueprint.route('/<system_id>/network/interface/<iface>', methods=['PUT'])
@@ -103,7 +94,10 @@ def put_system_network_interface(system_id, iface):
 
     (success, msg) = put_interface(system_id, iface, is_json_true(promisc))
     if not success:
-        current_app.logger.error("network: put_system_network_interface error: " + str(msg))
+        current_app.logger.error(
+            f"network: put_system_network_interface error: {str(msg)}"
+        )
+
         return make_error(msg, 500)
 
     return make_ok()
@@ -119,7 +113,10 @@ def get_system_network_interface_traffic(system_id, iface):
         timeout = 10
     (success, data) = get_interface_traffic(system_id, iface, timeout)
     if not success:
-        current_app.logger.error("newtork: get_system_network_interface_traffic error: " + str(data))
+        current_app.logger.error(
+            f"newtork: get_system_network_interface_traffic error: {str(data)}"
+        )
+
         return make_error(data, 500)
 
     return make_ok(stats=data)
@@ -132,7 +129,10 @@ def get_system_network_interface_traffic(system_id, iface):
 def get_system_network_traffic_stats(system_id):
     (success, data) = get_traffic_stats(system_id)
     if not success:
-        current_app.logger.error("network: get_system_network_traffic_stats error: " + str(data))
+        current_app.logger.error(
+            f"network: get_system_network_traffic_stats error: {str(data)}"
+        )
+
         return make_error("Error getting iface list", 500)
 
     return make_ok(stats=data)
@@ -147,7 +147,10 @@ def get_system_network_resolve(system_id):
 
     (success, data) = dns_resolution(system_id)
     if not success:
-        current_app.logger.error("network: get_system_network_resolve error: " + str(data))
+        current_app.logger.error(
+            f"network: get_system_network_resolve error: {str(data)}"
+        )
+
         return make_error(data, 500)
 
     return make_ok(dns_resolution=data)
@@ -159,7 +162,8 @@ def get_system_network_resolve(system_id):
 @accepted_url({'system_id': {'type': UUID, 'values': ['local']}, 'host_ip': str})
 def get_host_fqdn(system_id):
     host_ip = request.form.get('host_ip')
-    if not is_valid_ipv4(host_ip):
-        return make_error("Invalid host IP address", 500)
-
-    return make_ok(fqdn=get_fqdn_api(system_id, host_ip))
+    return (
+        make_ok(fqdn=get_fqdn_api(system_id, host_ip))
+        if is_valid_ipv4(host_ip)
+        else make_error("Invalid host IP address", 500)
+    )

@@ -69,7 +69,7 @@ def get_alienvault_platform(system_ip='127.0.0.1'):
         response = ansible.run_module([system_ip], "shell", command)
         platform = response['contacted'][system_ip]['stdout']
     except Exception as exc:
-        return False, "[get_alienvault_platform] Failed: {}".format(exc)
+        return False, f"[get_alienvault_platform] Failed: {exc}"
 
     return True, platform
 
@@ -82,7 +82,7 @@ def get_alienvault_appliance_type(system_ip='127.0.0.1'):
         response = ansible.run_module([system_ip], "shell", command)
         appliance_type = response['contacted'][system_ip]['stdout']
     except Exception as exc:
-        return False, "[get_alienvault_appliance_type] Failed: {}".format(exc)
+        return False, f"[get_alienvault_appliance_type] Failed: {exc}"
 
     return True, appliance_type
 
@@ -90,9 +90,11 @@ def get_alienvault_appliance_type(system_ip='127.0.0.1'):
 def get_local_ami_public_ip(system_ip='127.0.0.1'):
     _, current_platform = get_alienvault_platform(system_ip)
     if current_platform != 'alienvault-ami':
-        return False, "[get_local_ami_public_ip] Failed: The current platform is not AMI ({})".format(
-            current_platform
+        return (
+            False,
+            f"[get_local_ami_public_ip] Failed: The current platform is not AMI ({current_platform})",
         )
+
 
     try:
         command = """
@@ -101,7 +103,7 @@ def get_local_ami_public_ip(system_ip='127.0.0.1'):
         response = ansible.run_module([system_ip], "shell", command)
         public_ip = response['contacted'][system_ip]['stdout']
     except Exception as exc:
-        return False, "[get_local_ami_public_ip] Failed: {}".format(exc)
+        return False, f"[get_local_ami_public_ip] Failed: {exc}"
 
     return True, public_ip
 
@@ -114,7 +116,7 @@ def get_threat_intelligence_version(system_ip='127.0.0.1'):
         response = ansible.run_module([system_ip], "shell", command)
         version = response['contacted'][system_ip]['stdout']
     except Exception as exc:
-        return False, "[get_threat_intelligence_version] Failed: {}".format(exc)
+        return False, f"[get_threat_intelligence_version] Failed: {exc}"
 
     return True, version
 
@@ -147,22 +149,22 @@ def get_installation_date(system_ip='127.0.0.1'):
     """
     installer_file = "/etc/ossim/.ossim_installer_version"
 
-    response = ansible.run_module([system_ip], "stat", "path=%s" % installer_file)
+    response = ansible.run_module([system_ip], "stat", f"path={installer_file}")
     if system_ip in response['dark']:
         return (False, "get_installation_date" + response['dark'][system_ip]['msg'])
-    
+
     if not response['contacted'][system_ip]['stat']['exists']:
         return (False, "get_installation_date: File /etc/ossim/.ossim_installer_version doesn't exists")
 
     installation_date = response['contacted'][system_ip]['stat']['mtime']
 
 
-    response = ansible.run_module([system_ip], "command", "cat %s" % installer_file)
+    response = ansible.run_module([system_ip], "command", f"cat {installer_file}")
     if system_ip in response['dark']:
         return (False, "get_installation_date" + response['dark'][system_ip]['msg'])
     installation_version = response['contacted'][system_ip]['stdout']
 
-    return (True, "%s (%s)" % (ctime(installation_date), installation_version))
+    return True, f"{ctime(installation_date)} ({installation_version})"
 
 
 def get_license_info(system_ip='127.0.0.1'):
@@ -180,10 +182,8 @@ def get_license_info(system_ip='127.0.0.1'):
     if 'appliance' in parsed.sections():
         license_info = dict(parsed.items('appliance'))
 
-    (success, msg) = remove_dir([system_ip], '/tmp/%s' % system_ip)
-    if not success:
-        return (False, msg)
-    return (True, license_info)
+    (success, msg) = remove_dir([system_ip], f'/tmp/{system_ip}')
+    return (True, license_info) if success else (False, msg)
 
 
 def get_about_info(system_ip='127.0.0.1'):
@@ -205,12 +205,7 @@ def get_about_info(system_ip='127.0.0.1'):
         system_id = 'NA'
 
     (success, profiles) = get_profile(system_ip)
-    profile_str = ""
-    if len(profiles) == 4:
-        profile_str += "All In One"
-    else:
-        profile_str += ','.join(x for x in profiles)
-
+    profile_str = "" + ("All In One" if len(profiles) == 4 else ','.join(profiles))
     (success, license_data) = get_license_info(system_ip)
     if not success:
         license_info = 'NA'

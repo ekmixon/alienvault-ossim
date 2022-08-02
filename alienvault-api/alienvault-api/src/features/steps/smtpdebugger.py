@@ -1,9 +1,9 @@
 from smtpd import DebuggingServer
 class SMTPDebugger(DebuggingServer):
-    def __init__(*args,**kwargs):
-        DebuggingServer.__init__(*args,**kwargs)
-    def process_message(*args, **kwargs):
-        for a in args:
+    def __init__(self, **kwargs):
+        DebuggingServer.__init__(*self, **kwargs)
+    def process_message(self, **kwargs):
+        for a in self:
             print(a)
         for k,v in kwargs.items():
-            print("%s = %s" % (str(k),str(v)))
+            print(f"{str(k)} = {str(v)}")

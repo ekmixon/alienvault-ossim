@@ -83,7 +83,10 @@ def apimethod_get_plugin_list():
         raw_data = get_plugin_list_from_plugin_data()
         plugin_list = [plugin.serialize for plugin in raw_data]
     except Exception as e:
-        api_log.error("[apimethod_get_plugin_list] Cannot load the list of the plugins: {}".format(e))
+        api_log.error(
+            f"[apimethod_get_plugin_list] Cannot load the list of the plugins: {e}"
+        )
+
         raise APIPluginListCannotBeLoaded()
     # Removing True to avoid creation of the excess list after json serialization
     # http://flask.pocoo.org/docs/0.12/api/#flask.json.jsonify
@@ -97,7 +100,7 @@ def apimethod_upload_plugin(plugin_file, vendor, model, version, product_type, o
     try:
         temporal_plg_path = os.path.join(TEMPORAL_FOLDER, plugin_file)
         plugin_destination_path = os.path.join(END_FOLDER, plugin_file)
-        temporal_plg_sql_path = temporal_plg_path + '.sql'
+        temporal_plg_sql_path = f'{temporal_plg_path}.sql'
         plugin_asec_path = os.path.join(TEMPORAL_FOLDER, plugin_file)
 
         # The PluginCheck object will be able to check the syntax of a given plugin
@@ -146,7 +149,7 @@ def apimethod_upload_plugin(plugin_file, vendor, model, version, product_type, o
 
         # Remove via ansible due to file permissions
         remove_file(['127.0.0.1'], plugin_asec_path)
-        remove_file(['127.0.0.1'], plugin_asec_path + '.sql')
+        remove_file(['127.0.0.1'], f'{plugin_asec_path}.sql')
         # TODO: Is the plugin fd already in use? What is the next free plugin id?
         # 3 - Synchronize Plugins.
         from celerymethods.tasks.monitor_tasks import monitor_sync_custom_plugins
@@ -156,7 +159,7 @@ def apimethod_upload_plugin(plugin_file, vendor, model, version, product_type, o
             raise APICannotSavePlugin("Cannot synchronize the plugin.")
         data["synchronization_job"] = job.id
     except Exception as e:
-        api_log.error("[apimethod_upload_plugin] {}".format(str(e)))
+        api_log.error(f"[apimethod_upload_plugin] {str(e)}")
         if not isinstance(e, APIException):
             raise APICannotSavePlugin()
         raise
@@ -174,9 +177,9 @@ def apimethod_download_plugin(plugin_file):
         Returns the content of the given plugin file
     """
     try:
-        plugin_path = "{}{}".format(END_FOLDER, plugin_file)
+        plugin_path = f"{END_FOLDER}{plugin_file}"
         if not os.path.isfile(plugin_path):
-            plugin_path = "{}{}".format(PLUGINS_FOLDER, plugin_file)
+            plugin_path = f"{PLUGINS_FOLDER}{plugin_file}"
             if not os.path.isfile(plugin_path):
                 raise APIPluginFileNotFound(plugin_file)
         with open(plugin_path) as plugin_file:
@@ -199,7 +202,7 @@ def remove_plugin_from_sensors(plugin_file):
     # Out[3]: {'564d1731-5369-d912-e91b-61c1fff3cf6c': '192.168.87.197'}
 
     if not result:
-        api_log.error('Cannot get list of connected sensors: {}'.format(added_sensors))
+        api_log.error(f'Cannot get list of connected sensors: {added_sensors}')
         return False
 
     # Add local check
@@ -208,17 +211,23 @@ def remove_plugin_from_sensors(plugin_file):
 
     if added_sensors:
         for sensor_id, sensor_ip in added_sensors.iteritems():
-            api_log.info('Trying to disable global plugin "{}" plugin on - {}'.format(plugin_name, sensor_ip))
+            api_log.info(
+                f'Trying to disable global plugin "{plugin_name}" plugin on - {sensor_ip}'
+            )
+
             result, msg = disable_plugin_globally(plugin_name, sensor_ip)
             if not result:
                 api_log.error(msg)
-            api_log.info('Trying to disable per-asset plugin "{}" plugin on - {}'.format(plugin_name, sensor_ip))
+            api_log.info(
+                f'Trying to disable per-asset plugin "{plugin_name}" plugin on - {sensor_ip}'
+            )
+
             result, msg = disable_plugin_per_assets(plugin_name, sensor_ip)
             if not result:
                 api_log.error(msg)
 
         # Remove plugin file from disk
-        api_log.info('Removing plugin file: {} on sensors {}'.format(plugin_file, added_sensors))
+        api_log.info(f'Removing plugin file: {plugin_file} on sensors {added_sensors}')
         result = remove_file(host_list=added_sensors.values(), file_name=plugin_file)
 
     return result
@@ -235,17 +244,19 @@ def apimethod_remove_plugin(plugin_file):
         plugin.read(plugin_path, encoding='latin1')
         plugin.check()  # validate and load all the plugins data
         plugin_data = get_plugin_data_for_plugin_id(plugin.plugin_id)
-        if plugin_data is not None:
-            if plugin_data.plugin_type == PluginDataType.ALIENVAULT_PLUGIN:
-                raise APICannotBeRemoved("This is an AlienVault Plugin. It cannot be removed")
+        if (
+            plugin_data is not None
+            and plugin_data.plugin_type == PluginDataType.ALIENVAULT_PLUGIN
+        ):
+            raise APICannotBeRemoved("This is an AlienVault Plugin. It cannot be removed")
         # Remove the sids
         remove_plugin_data(plugin.plugin_id)
         remove_plugin_from_sensors(plugin_path)
         # Remove sql file locally (it's located only on server)
-        os.remove(plugin_path + '.sql')
+        os.remove(f'{plugin_path}.sql')
     except Exception as e:
-        api_log.error("[apimethod_remove_plugin] {}".format(e))
+        api_log.error(f"[apimethod_remove_plugin] {e}")
         if not isinstance(e, APIException):
-            raise APICannotBeRemoved("{}".format(e))
+            raise APICannotBeRemoved(f"{e}")
         else:
             raise

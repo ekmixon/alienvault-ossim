@@ -30,23 +30,23 @@ import syslog
 
 
 def info(message):
-    syslog.syslog(syslog.LOG_INFO, "ALIENVAULT-API[INFO]: " + message)
+    syslog.syslog(syslog.LOG_INFO, f"ALIENVAULT-API[INFO]: {message}")
 
 
 def debug(message):
-    syslog.syslog(syslog.LOG_DEBUG, "ALIENVAULT-API[DEBUG]: " + message)
+    syslog.syslog(syslog.LOG_DEBUG, f"ALIENVAULT-API[DEBUG]: {message}")
 
 
 def warning(message):
-    syslog.syslog(syslog.LOG_WARNING, "ALIENVAULT-API[WARNING]: " + message)
+    syslog.syslog(syslog.LOG_WARNING, f"ALIENVAULT-API[WARNING]: {message}")
 
 
 def error(message):
-    syslog.syslog(syslog.LOG_ERR, "ALIENVAULT-API[ERROR]: " + message)
+    syslog.syslog(syslog.LOG_ERR, f"ALIENVAULT-API[ERROR]: {message}")
 
 
 def critical(message):
-    syslog.syslog(syslog.LOG_CRIT, "ALIENVAULT-API[CRITICAL]: " + message)
+    syslog.syslog(syslog.LOG_CRIT, f"ALIENVAULT-API[CRITICAL]: {message}")
 
 log_level = {
     'INFO': info,

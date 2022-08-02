@@ -93,17 +93,18 @@ class IDMConnection():
 
     @property
     def connected(self):
-        if self.conn is not None:
-            return self.conn.connected
-        return False
+        return self.conn.connected if self.conn is not None else False
 
     def __process_connection_message_response(self, response):
-        api_log.debug("IDM connector - Recv: %s" % response)
+        api_log.debug(f"IDM connector - Recv: {response}")
         success = False
         if response == 'ok id="' + str(self.sequence_id) + '"\n':
             success = True
         else:
-            api_log.error("IDM connector - Bad response from %s (seq_exp:%s): %s " % (self.ip, self.sequence_id, str(response)))
+            api_log.error(
+                f"IDM connector - Bad response from {self.ip} (seq_exp:{self.sequence_id}): {str(response)} "
+            )
+
         return success
 
     #################################################################
@@ -116,12 +117,12 @@ class IDMConnection():
             tries = 0
             connected = False
             self.close()
-            while tries < attempts and connected is False:
+            while tries < attempts and not connected:
                 if tries > 0:
                     time.sleep(wait_time)
                 tries += 1
-                api_log.debug("IDM connector - Tries: %s connected: %s" % (tries, connected))
-                api_log.debug("IDM connector - Conn: %s" % self.conn)
+                api_log.debug(f"IDM connector - Tries: {tries} connected: {connected}")
+                api_log.debug(f"IDM connector - Conn: {self.conn}")
                 if self.conn is not None:
                     self.conn.close()
                     self.conn = None
@@ -154,7 +155,7 @@ class IDMConnection():
             if not connected:
                 return False
         except Exception as err:
-            api_log.debug("IDM connector - Cannot connect to the server.... %s" % str(err))
+            api_log.debug(f"IDM connector - Cannot connect to the server.... {str(err)}")
             self.close()
             return False
         return True
@@ -181,7 +182,9 @@ class IDMConnection():
                 self.conn.close()
                 time.sleep(1)
         except Exception as err:
-            api_log.error("IDM connector - Cannot close the connection properly... %s" % str(err))
+            api_log.error(
+                f"IDM connector - Cannot close the connection properly... {str(err)}"
+            )
 
     def send_events_from_hosts(self, host_list):
         """Builds an IDM Event from a host dictionary and send it to the IDM"""

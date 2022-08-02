@@ -67,9 +67,12 @@ def set_sensor_detectors(system_ip, plugins):
     # is used to show the active plugins, so we flush it to refresh the active plugins
     flush_cache(namespace="system")
 
-    response = ansible.run_module(host_list=[system_ip],
-                                  module="av_config",
-                                  args="sensor_detectors=%s op=set" % plugins)
+    response = ansible.run_module(
+        host_list=[system_ip],
+        module="av_config",
+        args=f"sensor_detectors={plugins} op=set",
+    )
+
     return parse_av_config_response(response, system_ip)
 
 
@@ -97,7 +100,11 @@ def set_sensor_detectors_from_yaml(system_ip, plugins):
                                       args="op=set plugins=\"%s\"" % plugins)
 
         if response['dark'] != {}:
-            return False, "Something wrong happened while running the set plugin module %s" % str(response)
+            return (
+                False,
+                f"Something wrong happened while running the set plugin module {str(response)}",
+            )
+
         if "failed" in response['contacted'][system_ip]:
             try:
                 msg = response['contacted'][system_ip]['msg']
@@ -105,7 +112,7 @@ def set_sensor_detectors_from_yaml(system_ip, plugins):
                 msg = response
             return False, msg
         if "unreachable" in response:
-            return False, "%s is unreachable" % system_ip
+            return False, f"{system_ip} is unreachable"
 
     except Exception as msg:
         response = str(msg)
@@ -160,12 +167,19 @@ def disable_plugin_globally(plugin_name, sensor_ip):
         # Set the global plugin list
         success, data = set_sensor_detectors(sensor_ip, ','.join(global_plugins_list))
         if success:
-            return True, "{} plugin was disabled in the detectors list on sensor: {}".format(plugin_name, sensor_ip)
-        else:
-            return False, "Error while saving global list of detectors: {}, sensor: {}, {}".format(global_plugins_list,
-                                                                                                   sensor_ip, data)
+            return (
+                True,
+                f"{plugin_name} plugin was disabled in the detectors list on sensor: {sensor_ip}",
+            )
 
-    return True, "Nothing to disable on sensor {}".format(sensor_ip)
+        else:
+            return (
+                False,
+                f"Error while saving global list of detectors: {global_plugins_list}, sensor: {sensor_ip}, {data}",
+            )
+
+
+    return True, f"Nothing to disable on sensor {sensor_ip}"
 
 
 def disable_plugin_per_assets(plugin_name, sensor_ip):
@@ -180,7 +194,7 @@ def disable_plugin_per_assets(plugin_name, sensor_ip):
     try:
         plugins_per_assets = get_sensor_detectors_from_yaml(sensor_ip)[1]['contacted'][sensor_ip]['plugins']['plugins']
     except TypeError:
-        return True, "Nothing to disable on sensor {}".format(sensor_ip)
+        return True, f"Nothing to disable on sensor {sensor_ip}"
 
     fetch_plg_names = [splitext(basename(plg.keys()[0]))[0] for plg in plugins_per_assets]
     if plugin_name in fetch_plg_names:
@@ -194,10 +208,16 @@ def disable_plugin_per_assets(plugin_name, sensor_ip):
 
         # Set the new plugin list
         success, data = set_sensor_detectors_from_yaml(sensor_ip, str(plugins_per_asset))
-        if not success:
-            return False, "Error while saving the list of detectors: {}, sensor: {}".format(plugins_per_asset,
-                                                                                            sensor_ip)
-        else:
-            return True, "Plugin: {} was disabled on sensor: {}".format(plugin_name, sensor_ip)
+        return (
+            (
+                True,
+                f"Plugin: {plugin_name} was disabled on sensor: {sensor_ip}",
+            )
+            if success
+            else (
+                False,
+                f"Error while saving the list of detectors: {plugins_per_asset}, sensor: {sensor_ip}",
+            )
+        )
 
-    return True, "Nothing to disable on sensor {}".format(sensor_ip)
+    return True, f"Nothing to disable on sensor {sensor_ip}"

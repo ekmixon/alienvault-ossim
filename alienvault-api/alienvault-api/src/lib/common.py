@@ -109,7 +109,7 @@ def make_error_from_exception(exception):
 
 def make_bad_request(message):
     """Return a JSON error message for bad requests"""
-    return make_error(message='Bad request: ' + str(message), status_code=400)
+    return make_error(message=f'Bad request: {str(message)}', status_code=400)
 
 
 def http_method_dispatcher(cls):
@@ -182,9 +182,8 @@ def check(checker_function):
     @decorator
     def check_with_checker_function(f, *args, **kwargs):
         result = checker_function(*args, **kwargs)
-        if result is not None:
-            return result
-        return f(*args, **kwargs)
+        return result if result is not None else f(*args, **kwargs)
+
     return check_with_checker_function
 
 
@@ -224,7 +223,9 @@ def if_content_exists_then_is_json(*args, **kwargs):
     Intended to be used with :func:`check`.
 
     """
-    if len(request.data.strip()) > 0:
-        if 'application/json' not in request.headers['Content-Type']:
-            return make_error(
-                'API only accepts Content-Type: application/json', 406)
+    if (
+        len(request.data.strip()) > 0
+        and 'application/json' not in request.headers['Content-Type']
+    ):
+        return make_error(
+            'API only accepts Content-Type: application/json', 406)

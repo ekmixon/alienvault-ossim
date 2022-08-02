@@ -93,7 +93,7 @@ def verify_sign(signature, data):
         if signer.verify(digest, b64decode(signature)):
             return True
     except Exception as error:
-        app.logger.error("An error occurred while verifying the data %s" % str(error))
+        app.logger.error(f"An error occurred while verifying the data {str(error)}")
     return False
 
 
@@ -117,20 +117,22 @@ def get_message_center_messages():
         if len(system_tags) == 0:
             return []
         revision = get_latest_message_revision()
-        msg_filter = "filters={}".format(','.join(system_tags))
+        msg_filter = f"filters={','.join(system_tags)}"
         if revision is not None:
-            msg_filter += "&revision={}".format(revision)
+            msg_filter += f"&revision={revision}"
 
-        url = 'https://{}:{}/messages?{}'.format(app.config['MESSAGE_CENTER_SERVER'],
-                                                 app.config['MESSAGE_CENTER_PORT'],
-                                                 msg_filter)
+        url = f"https://{app.config['MESSAGE_CENTER_SERVER']}:{app.config['MESSAGE_CENTER_PORT']}/messages?{msg_filter}"
+
         proxies = proxy.get_proxies()
         response = requests.get(url, proxies=proxies, timeout=20)
         response_data = response.json()
         response_code = response.status_code
 
         if response_code != 200:
-            app.logger.warning("Invalid response from the mcserver %s:%s" % (response_code, response_data))
+            app.logger.warning(
+                f"Invalid response from the mcserver {response_code}:{response_data}"
+            )
+
         for field in ['data', 'status', 'signature']:
             if field not in response_data:
                 return []
@@ -146,11 +148,13 @@ def get_message_center_messages():
 
     except RequestException as e:
         conn_failed = True
-        app.logger.error("Cannot connect to the Message Center Server : {}".format(e))
+        app.logger.error(f"Cannot connect to the Message Center Server : {e}")
 
     except Exception:
         import traceback
-        app.logger.error("An error occurred while retrieving the Message Center Server messages: {}".format(
-            str(traceback.format_exc())))
+        app.logger.error(
+            f"An error occurred while retrieving the Message Center Server messages: {str(traceback.format_exc())}"
+        )
+
 
     return messages, conn_failed

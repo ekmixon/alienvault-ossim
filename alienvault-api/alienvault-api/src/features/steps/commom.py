@@ -6,10 +6,7 @@ import urllib
 
 def _decode_parameter(value):
     """Get BDD step parameter, redirecting to env var if start with $."""
-    if value.startswith('$'):
-        return os.environ.get(value[1:], '')
-    else:
-        return value
+    return os.environ.get(value[1:], '') if value.startswith('$') else value
 
 
 def _get_data_from_context(context):
@@ -53,13 +50,12 @@ def make_request(context, url , request_type='GET', is_login=False):
     context.result.truncate(0)
     urlparams = urllib.urlencode(context.urlparams)
     if urlparams != '' and request_type != 'POST':
-        url =  url + "?" + urlparams
+        url = f"{url}?{urlparams}"
 
     if is_login:
         context.cookies = {}
 
     headers = {"Accept": "application/json"}  # force a JSON response to allow correct handling and avoid the internal
-                                              # server error (500)
     if request_type == 'GET':
         r = requests.get(url.encode('ascii'), verify=False, headers=headers, cookies=context.cookies)
     elif request_type == 'POST':

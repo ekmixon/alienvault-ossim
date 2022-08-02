@@ -130,10 +130,7 @@ def get_ha_status(av_conf):
             # Now, check the cluster status
             pipe = subprocess.Popen([HA_STATUS, "rscstatus"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             (stdout, stderr) = pipe.communicate()
-            if stdout == "none\n":
-                result = "down"
-            else:
-                result = "up"
+            result = "down" if stdout == "none\n" else "up"
         else:
             # Here a want to raise and log excetpin
             result = "error"
@@ -146,8 +143,7 @@ def get_network_status(av_conf):
     """
         Get the network status
     """
-    result = dict()
-    result['firewall_active'] = av_conf.get_firewall_active()
+    result = {'firewall_active': av_conf.get_firewall_active()}
     result['vpn_access'] = av_conf.get_avvpn_config_enabled()
     try:
         result['vpn_access'] = av_conf.get_avvpn_config_enabled()
@@ -171,14 +167,11 @@ def get_network_status(av_conf):
         # Also we need the IP and promisc flags.
         with open(os.path.join(SYS_DEV_PATH, nic, "flags"), "r") as fnic:
             nicflags = fnic.readline()[:-1]
-            if int(nicflags, 16) & 0x100:
-                result['interfaces'][nic]['promisc'] = True
-            else:
-                result['interfaces'][nic]['promisc'] = False
-            if int(nicflags, 16) & 0x1:
-                result['interfaces'][nic]['status'] = 'up'
-            else:
-                result['interfaces'][nic]['status'] = 'down'
+            result['interfaces'][nic]['promisc'] = bool(int(nicflags, 16) & 0x100)
+            result['interfaces'][nic]['status'] = (
+                'up' if int(nicflags, 16) & 0x1 else 'down'
+            )
+
     return result
 
 
@@ -190,11 +183,8 @@ def get_total_directives_entities(directivesfile):
     # Total entities
     total = tree.doctype.entities.length
     # Get the system_id
-    result = dict()
-    result['total'] = total
-    entities = []
-    for i in range(0, total):
-        entities.append(tree.doctype.entities.item(i).systemId)
+    result = {'total': total}
+    entities = [tree.doctype.entities.item(i).systemId for i in range(total)]
     result['entities'] = entities
     return result
 
@@ -244,12 +234,10 @@ def get_directives_info(directivesfile):
     parser.setEntityResolver(resolver)
     parser.setContentHandler(resolver)
     parser.parse(directivesfile)
-    result = dict()
-    result['total'] = resolver.totalDirectives()
+    result = {'total': resolver.totalDirectives()}
     total_directives = get_total_directives_entities(directivesfile)
-    
-    entities = dict()
-    entities['total'] = total_directives['total']
+
+    entities = {'total': total_directives['total']}
     enabled = [entity for entity in resolver.enabledEntities() if entity in total_directives['entities']]
     entities['enabled'] = len(enabled)
     result['entities'] = entities
@@ -271,7 +259,7 @@ def get_db_info(databases):
     if not success:
         return result
 
-    result = dict((name, {'size': size}) for name, size in db_sizes.iteritems())
+    result = {name: {'size': size} for name, size in db_sizes.iteritems()}
 
     return result
 
@@ -280,7 +268,6 @@ def get_alienvault_status(module, av_conf):
     """
         Get the Alienvault Status info
     """
-    result = {}
     p_data = {}
     profiles = av_conf.get_general_profile_list()
     if "Sensor" in profiles:
@@ -298,8 +285,7 @@ def get_alienvault_status(module, av_conf):
         p_data['server']['directives'] = get_directives_info(module.params['directivesfile'])
         p_data['server']['ip_reputation'] = 'yes' if av_conf.get_server_alienvault_ip_reputation() == 'enabled' else 'no'
 
-    result['profiles'] = p_data
-    return result
+    return {'profiles': p_data}
 
 
 def get_cpu_info():
@@ -315,10 +301,9 @@ def get_cpu_info():
     with open("/proc/cpuinfo", "r") as fhandle:
         count = 0
         regexp = re.compile(r"^model name\s+:\s+(.*)$")
-        for line in fhandle.readlines():
-            model_line = re.match(regexp, line)
-            if model_line:
-                result["cpu%d" % count] = {'core': model_line.group(1)}
+        for line in fhandle:
+            if model_line := re.match(regexp, line):
+                result["cpu%d" % count] = {'core': model_line[1]}
                 count += 1
     count = 0
     for cpu in cpus:
@@ -351,12 +336,16 @@ def get_system_uptime():
 
 def get_mem_info():
     """ Get the meminfo including virtual (swap) memory """
-    result = {}
     swap = psutil.swap_memory()
-    result['swap'] = {'total': swap.total,
-                      'free': swap.free,
-                      'used': swap.used,
-                      'percent_used': swap.percent}
+    result = {
+        'swap': {
+            'total': swap.total,
+            'free': swap.free,
+            'used': swap.used,
+            'percent_used': swap.percent,
+        }
+    }
+
     # Now get the free memory
     ram = psutil.virtual_memory()
     result['ram'] = {'total': ram.total,
@@ -439,8 +428,7 @@ def __run_module(module):
         av_conf = ossimsetupconfig.AVOssimSetupConfigHandler(filename=module.params['conffile'])
     except Exception as exp:
         return False, str(exp)
-    result = do_work(module, av_conf)
-    return result
+    return do_work(module, av_conf)
 
 
 def main():

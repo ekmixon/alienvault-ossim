@@ -63,10 +63,7 @@ def dns_resolution(system_id):
         dns_lookup = data['update_update_proxy_dns']
 
     (success, data) = ansiblemethods.system.network.resolve_dns_name(system_ip, dns_lookup)
-    if not success:
-        return (False, "Error resolving DNS name")
-
-    return (True, data)
+    return (True, data) if success else (False, "Error resolving DNS name")
 
 
 def dns_is_external(param_ip):
@@ -95,10 +92,7 @@ def get_interfaces(system_id, no_cache=False):
         return ret
 
     (success, ifaces) = ret = ansiblemethods.system.network.get_iface_list(ip)
-    if not success:
-        return ret
-
-    return (True, ifaces)
+    return (True, ifaces) if success else ret
 
 def get_interface(system_id, iface):
     """
@@ -112,7 +106,7 @@ def get_interface(system_id, iface):
     if not success:
         return ret
 
-    if not iface in ifaces:
+    if iface not in ifaces:
         return (False, "Invalid network interface")
 
     return (True, ifaces[iface])
@@ -140,45 +134,48 @@ def set_interfaces_roles(system_id, interfaces):
 
     return (True, job.id)
 
-def put_interface (system_id, iface, promisc):
+def put_interface(system_id, iface, promisc):
     """
     Modify network interface properties (currently, only sets promisc mode)
     """
     # Flush the cache "sensor_network"
     flush_cache(namespace="sensor_network")
     (success, ip) = ret = get_system_ip_from_system_id(system_id)
-    if not success:
-        return ret
+    return (
+        ansiblemethods.system.network.set_iface_promisc_status(
+            ip, iface, promisc
+        )
+        if success
+        else ret
+    )
 
-    return ansiblemethods.system.network.set_iface_promisc_status (ip, iface, promisc)
-
-def get_interface_traffic (system_id, iface, timeout):
+def get_interface_traffic(system_id, iface, timeout):
     """
     Get the inbound and outbound network traffic in an interface for the last 'timeout' seconds.
     """
     try:
         timeout_int = int(timeout)
     except ValueError:
-        return (False, "Invalid value for timeout: %s" % timeout)
+        return False, f"Invalid value for timeout: {timeout}"
 
     if timeout_int not in range(1, 60):
         return (False, "Timeout value of %d out of range, it should be between 1 and 60" % timeout_int)
 
     (success, ip) = ret = get_system_ip_from_system_id(system_id)
-    if not success:
-        return ret
+    return (
+        ansiblemethods.system.network.get_iface_traffic(
+            ip, iface, timeout=timeout_int
+        )
+        if success
+        else ret
+    )
 
-    return ansiblemethods.system.network.get_iface_traffic(ip, iface, timeout=timeout_int)
-
-def get_traffic_stats (system_id):
+def get_traffic_stats(system_id):
     """
     Get traffic statistics for a system.
     """
     (success, ip) = ret = get_system_ip_from_system_id(system_id)
-    if not success:
-        return ret
-
-    return ansiblemethods.system.network.get_iface_stats(ip)
+    return ansiblemethods.system.network.get_iface_stats(ip) if success else ret
 
 
 def get_fqdn_api(system_id, host_ip):

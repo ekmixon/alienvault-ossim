@@ -33,19 +33,20 @@ from db.methods.system import get_system_ip_from_system_id
 from ansiblemethods.system.system import get_doctor_data
 from ansiblemethods.helper import fetch_file
 
-def get_support_info (system_id, ticket):
-    args = {}
-    args['output_type'] = 'support'
-    args['output_raw'] = 'True'
-    args['verbose'] = 2
-    args['output_file_prefix'] = ticket
+def get_support_info(system_id, ticket):
+    args = {
+        'output_type': 'support',
+        'output_raw': 'True',
+        'verbose': 2,
+        'output_file_prefix': ticket,
+    }
 
     (success, ip) = get_system_ip_from_system_id(system_id)
     if not success:
         return (False, "Bad system_id '%s'" % system_id)
 
     if not ticket.isdigit() or len(ticket) != 8:
-        return (False, "Bad ticket id format: %s" % ticket)
+        return False, f"Bad ticket id format: {ticket}"
 
     file_uploaded = False
     file_name = ''

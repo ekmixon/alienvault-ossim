@@ -69,13 +69,12 @@ def get_plugin_package_info_from_sensor_id(sensor_id):
         (success, info) = get_plugin_package_info(sensor_ip)
         if not success:
             result = (False, "Can't get plugins version/md5 information")
+        elif info == '':
+            result = (False, "Can't obtain version information")
         else:
-            if info != '':
-                result = (True, info)
-            else:
-                result = (False, "Can't obtain version information")
+            result = (True, info)
     else:
-        result = (False, "Bad sensor id: %s" % str(sensor_id))
+        result = False, f"Bad sensor id: {str(sensor_id)}"
     return result
 
 
@@ -85,15 +84,14 @@ def get_plugin_package_info_from_system_id(system_id):
         :param: system_id
     """
     (success, system_ip) = get_system_ip_from_system_id(system_id)
-    if success:
-        (success, info) = get_plugin_package_info(system_ip)
-        if not success:
-            result = (False, "Can't get plugins version/md5 information")
-        else:
-            result = (True, info)
-    else:
-        result = (False, "Bad system id: %s" % str(system_id))
-    return result
+    if not success:
+        return False, f"Bad system id: {str(system_id)}"
+    (success, info) = get_plugin_package_info(system_ip)
+    return (
+        (True, info)
+        if success
+        else (False, "Can't get plugins version/md5 information")
+    )
 
 
 def get_plugin_package_info_local():
@@ -102,11 +100,9 @@ def get_plugin_package_info_local():
     """
     (success, system_id) = get_system_id_from_local()
     if success:
-        result = get_plugin_package_info_from_system_id(system_id)
-    else:
-        api_log.error(str(system_id))
-        result = (False, "Can't get plugins version/md5 information for local system")
-    return result
+        return get_plugin_package_info_from_system_id(system_id)
+    api_log.error(str(system_id))
+    return False, "Can't get plugins version/md5 information for local system"
 
 
 def check_plugin_integrity(system_id="local"):
@@ -116,17 +112,18 @@ def check_plugin_integrity(system_id="local"):
     success, system_ip = get_system_ip_from_system_id(system_id)
     if not success:
         api_log.error(str(system_ip))
-        return False, "Error retrieving the system ip for the system id %s -> %s" % (system_ip, str(system_ip))
+        return (
+            False,
+            f"Error retrieving the system ip for the system id {system_ip} -> {str(system_ip)}",
+        )
+
 
     success, is_pro = get_is_professional(system_ip)
-    if not (success and is_pro):
+    if not success or not is_pro:
         return (True, "Skipping plugin integrity check in non professional system")
 
     success, data = ansible_check_plugin_integrity(system_ip)
-    if not success:
-        return False, data
-
-    return True, data
+    return (True, data) if success else (False, data)
 
 def get_plugin_sids_package(system_id, md5):
     """
@@ -227,9 +224,7 @@ def get_sensor_plugins(sensor_id, no_cache=False):
             sensor_id=sensor_id,
             log='[get_sensor_plugins] Error getting sensor ip: {0}'.format(str(sensor_ip)))
 
-    plugins = ansible_get_sensor_plugins(system_ip=sensor_ip)
-
-    return plugins
+    return ansible_get_sensor_plugins(system_ip=sensor_ip)
 
 
 def get_sensor_plugins_enabled_by_asset(sensor_id, asset_id=None, no_cache=False):
@@ -250,7 +245,12 @@ def get_sensor_plugins_enabled_by_asset(sensor_id, asset_id=None, no_cache=False
     if 'enabled' in sensor_data:
         asset_plugins = sensor_data['enabled'].get('devices', {})
     if asset_id is not None:
-        asset_plugins = dict((key, value) for key, value in asset_plugins.iteritems() if key == asset_id)
+        asset_plugins = {
+            key: value
+            for key, value in asset_plugins.iteritems()
+            if key == asset_id
+        }
+
 
     # Fill the plugin info
     plugins = {}
@@ -349,6 +349,8 @@ def get_sensor_detector_plugins(sensor_id):
     """
     plugin_info = get_sensor_plugins(sensor_id)
     all_plugins = plugin_info.get('plugins', {})
-    plugins = dict((key, value) for key, value in all_plugins.iteritems() if value.get('type', '') == 'detector')
-
-    return plugins
+    return {
+        key: value
+        for key, value in all_plugins.iteritems()
+        if value.get('type', '') == 'detector'
+    }

@@ -50,9 +50,7 @@ def send_email(host, port, sender, recipients, subject, body, user, passwd, use_
     attach=%s" % (host, port, sender, recipients, subject, body, user, passwd, use_ssl, attachemnts)
 
     data = ansible.run_module([], "av_mail", args, use_sudo=False, local=True)
-    result = True
-    if 'failed' in data:
-        result = False
+    result = 'failed' not in data
     return result, data
 
 
@@ -129,20 +127,20 @@ def rsync(local_ip, src, dest):
     """
     # Check parameters
     if not all((local_ip, src, dest)):
-        return False, "Invalid parameters: {}".format(locals())
+        return False, f"Invalid parameters: {locals()}"
 
     ssh_key_file = '/var/ossim/ssl/local/private/cakey_avapi.pem'
     # Use -i option to know if the file has changed
     # To avoid warning massage in ansible output "-q" key has been added:
     # u'stderr': u"Warning: Permanently added '192.168.87.198' (RSA) to the list of known hosts.",
-    rsync_command = 'rsync -aizPe "ssh -q -o UserKnownHostsFile=/dev/null ' \
-                    '-o StrictHostKeyChecking=no -i {}" {} {}'.format(ssh_key_file, src, dest)
+    rsync_command = f'rsync -aizPe "ssh -q -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i {ssh_key_file}" {src} {dest}'
+
 
     # Rsync pull remote file
     try:
         response = ansible.run_module(host_list=[local_ip], module='command', args=rsync_command, use_sudo=False)
     except Exception as e:
-        return False, "Ansible Error: An error occurred while rsyncing file(s): {}".format(e)
+        return False, f"Ansible Error: An error occurred while rsyncing file(s): {e}"
 
     success, msg = ansible_is_valid_response(local_ip, response)
     if not success or response['contacted'][local_ip]['stderr'] != '':
@@ -163,8 +161,8 @@ def rsync_pull(remote_ip, remote_file_path, local_ip, local_file_path):
     """
     # Check parameters
     if not all((remote_ip, remote_file_path, local_ip, local_file_path)):
-        return False, "Invalid parameters: {}".format(locals())
-    src = "{}:{}".format(remote_ip, remote_file_path)
+        return False, f"Invalid parameters: {locals()}"
+    src = f"{remote_ip}:{remote_file_path}"
     destination = local_file_path
     return rsync(local_ip=local_ip, src=src, dest=destination)
 
@@ -180,7 +178,7 @@ def rsync_push(local_ip, local_file_path, remote_ip, remote_file_path):
     """
     # Check parameters
     if not all((local_ip, local_file_path, remote_ip, remote_file_path)):
-        return False, "Invalid parameters: {}".format(locals())
+        return False, f"Invalid parameters: {locals()}"
     src = local_file_path
-    destination = "{}:{}".format(remote_ip, remote_file_path)
+    destination = f"{remote_ip}:{remote_file_path}"
     return rsync(local_ip=local_ip, src=src, dest=destination)

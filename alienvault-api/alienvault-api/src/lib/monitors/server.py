@@ -51,7 +51,7 @@ class MonitorServerEPSStats(Monitor):
         self.__server_ip = '127.0.0.1'
         self.__server_port = '40009'
         self.__stats_dir = '/var/alienvault/server/stats'
-        self.__eps_log_file = '%s/%s' % (self.__stats_dir, 'eps.log')
+        self.__eps_log_file = f'{self.__stats_dir}/eps.log'
         self.__max_samples = 168
 
     def start(self):

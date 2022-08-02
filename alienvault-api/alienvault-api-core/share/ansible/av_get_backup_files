@@ -72,7 +72,7 @@ def get_backup_info(backup_file):
                                                                                                              full_path)
     return_code, output, error = _run_command(cmd)
     if return_code != 0:
-        return False, "Error getting backup info: %s" % error
+        return False, f"Error getting backup info: {error}"
 
     info = {'file': backup_file}
     try:
@@ -84,7 +84,7 @@ def get_backup_info(backup_file):
         # Convert timestamp
         info['date'] = int(info['date'])
     except Exception as e:
-        return False, "Error getting backup info: %s" % str(e)
+        return False, f"Error getting backup info: {str(e)}"
     return True, info
 
 
@@ -114,9 +114,8 @@ def load_summary(summary_file):
 
 def write_summary_file(summary, summary_file):
     try:
-        f = open(summary_file, 'w')
-        f.write(json.dumps(summary))
-        f.close()
+        with open(summary_file, 'w') as f:
+            f.write(json.dumps(summary))
     except:
         pass
 

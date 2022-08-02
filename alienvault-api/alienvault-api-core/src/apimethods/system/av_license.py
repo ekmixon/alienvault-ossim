@@ -63,7 +63,7 @@ class AVLicense:
     def __str__(self):
         """Returns an string representing the object
         """
-        return "AVLicense: type:%s key:%s system_id:%s system_id:%s" % (self.__license_type, self.__key, self.__sytem_id, self.__sytem_id)
+        return f"AVLicense: type:{self.__license_type} key:{self.__key} system_id:{self.__sytem_id} system_id:{self.__sytem_id}"
 
     def __get_license(self):
         """ Obtain the license package from license server
@@ -118,8 +118,11 @@ class AVLicense:
         2. Install debian package
         3. Remove remote and local debian package file
         """
-        (success, msg) = copy_file(host_list=[self.__system_ip],
-                                   args="src=%s dest=%s" % (self.__deb_pkg_file, self.__deb_pkg_file))
+        (success, msg) = copy_file(
+            host_list=[self.__system_ip],
+            args=f"src={self.__deb_pkg_file} dest={self.__deb_pkg_file}",
+        )
+
         if not success:
             return (False, 'ERROR_SERVER')
 
@@ -135,10 +138,7 @@ class AVLicense:
 
         (success, msg) = remove_file(host_list=['127.0.0.1'],
                                      file_name=self.__deb_pkg_file)
-        if not success:
-            return (False, 'ERROR_SERVER')
-
-        return (True, 'SUCCESS')
+        return (True, 'SUCCESS') if success else (False, 'ERROR_SERVER')
 
     def register_appliance(self):
         """ Register the appliance:
@@ -156,10 +156,7 @@ class AVLicense:
         self.__proxy = AVProxy(self.__system_ip)
 
         (success, msg) = self.__get_license()
-        if not success:
-            return (False, msg)
-
-        return self.__install_license()
+        return self.__install_license() if success else (False, msg)
 
 
 def translate_msg(msg):
@@ -178,10 +175,7 @@ def translate_msg(msg):
         'ERROR_INSTALLING_LICENSE': "There is a problem installing the Alienvault USM license, the package system could be blocked.\nPlease try again later."
     }
 
-    if msg in translation:
-        return translation[msg]
-    else:
-        return msg
+    return translation.get(msg, msg)
 
 
 def register_appliance_trial(email='',

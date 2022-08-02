@@ -97,10 +97,13 @@ def get_sensor_iface_traffic(sensor_ip, sensor_iface, timeout=2):
     @param timeout: Timeout to tshark. Default 2 seconds
     """
     try:
-        ansible_iface = "ansible_%s" % sensor_iface
-        response = ansible.run_module(host_list=[sensor_ip],
-                                      module='av_setup',
-                                      args="filter=" + ansible_iface)
+        ansible_iface = f"ansible_{sensor_iface}"
+        response = ansible.run_module(
+            host_list=[sensor_ip],
+            module='av_setup',
+            args=f"filter={ansible_iface}",
+        )
+
         if sensor_ip in response['dark']:
             return (False, "check_iface_traffic : " + response['dark'][sensor_ip]['msg'])
 
@@ -110,9 +113,12 @@ def get_sensor_iface_traffic(sensor_ip, sensor_iface, timeout=2):
         # Construct the params
         params = "-i %s -T psml -f \"not broadcast and not multicast and not ether dst %s and not ether src %s \" -a duration:%d" % \
                  (sensor_iface, mac, mac, timeout)
-        response = ansible.run_module(host_list=[sensor_ip],
-                                      module="command",
-                                      args="/usr/bin/tshark " + params)
+        response = ansible.run_module(
+            host_list=[sensor_ip],
+            module="command",
+            args=f"/usr/bin/tshark {params}",
+        )
+
         # Check result
         if sensor_ip in response['dark']:
             return (False, "check_iface_traffic : " + response['dark'][sensor_ip]['msg'])
@@ -122,14 +128,18 @@ def get_sensor_iface_traffic(sensor_ip, sensor_iface, timeout=2):
         if packets.documentElement.tagName != "psml":
             return (False, "check_iface_traffic : Bad XML response\n" + packets.toprettyxml())
 
-        # Check if we have packets inside
-        for children in packets.documentElement.childNodes:
-            if children.nodeType == children.ELEMENT_NODE and children.tagName == "packet":
-                return (True, {'has_traffic': True})
-        return (True, {'has_traffic': False})
+        return next(
+            (
+                (True, {'has_traffic': True})
+                for children in packets.documentElement.childNodes
+                if children.nodeType == children.ELEMENT_NODE
+                and children.tagName == "packet"
+            ),
+            (True, {'has_traffic': False}),
+        )
 
     except Exception as e:
-        return (False, "Ansible Error: " + str(e) + "\n" + traceback.format_exc())
+        return False, f"Ansible Error: {str(e)}" + "\n" + traceback.format_exc()
 
 
 def get_sensor_networks(sensor_ip):
@@ -161,12 +171,15 @@ def set_sensor_networks(sensor_ip, nets=[]):
         for net in nets:
             n = ipaddress.ip_network(unicode(net))
     except ValueError:
-        return (False, "Bad network => %s" % net)
+        return False, f"Bad network => {net}"
     # Join
     args = ",".join(nets)
-    response = ansible.run_module(host_list=[sensor_ip],
-                                  module="av_config",
-                                  args="sensor_networks=%s op=set" % args)
+    response = ansible.run_module(
+        host_list=[sensor_ip],
+        module="av_config",
+        args=f"sensor_networks={args} op=set",
+    )
+
     if sensor_ip in response['dark']:
         msg = response['dark'][sensor_ip].get('msg', "Unknown Ansible error")
     elif response['contacted'][sensor_ip].get('failed', False):

@@ -155,8 +155,7 @@ class AVMail:
             self.__use_postfix = True
     def __str__(self):
         """Returns an string representing the object"""
-        return "AVMail: server:%s user:%s, port:%s, postfix:%s, ssl:%s" % (self.__server,
-            self.__user, self.__port, self.__use_postfix,self.__use_ssl)
+        return f"AVMail: server:{self.__server} user:{self.__user}, port:{self.__port}, postfix:{self.__use_postfix}, ssl:{self.__use_ssl}"
     def check_connection(self):
         """Check the connection with the current params
         Returns a tuple of (code, msg) where code=0 if success, 
@@ -304,9 +303,9 @@ def main():
                                             attach = dict(default=None),
                                             headers = dict(default=None),
                                             charset = dict(default='us-ascii')
-                                  
+
                                               ))
-    
+
     host = module.params.get('host')
     port = module.params.get('port')
     sender = module.params.get('sender')
@@ -323,7 +322,7 @@ def main():
     postfix = module.params.get('postfix')
     use_ssl =module.params.get('use_ssl')
     sender_phrase, sender_addr = parseaddr(sender)
-    
+
     mail = AVMail(host,
                  port, 
                  user,
@@ -352,7 +351,7 @@ def main():
         for addr in [x.strip() for x in blindcopies.split(',')]:
             bcc_list.append( formataddr( parseaddr(addr)) )  
             addr_list.append( parseaddr(addr)[1] )
-            
+
     if attach_files:
         attach_list = attach_files.split(',')
         for attach in attach_list:
@@ -369,7 +368,7 @@ def main():
                         charset)
     del mail
     if code != 0:
-        module.fail_json(msg="Failed to send mail %s" % error_msg)
+        module.fail_json(msg=f"Failed to send mail {error_msg}")
     module.exit_json(changed=True, msg="OK")
 # this is magic, see lib/ansible/module_common.py
 #<<INCLUDE_ANSIBLE_MODULE_COMMON>>

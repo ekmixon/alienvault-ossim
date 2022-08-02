@@ -93,25 +93,23 @@ def _is_kernel_updated():
     proc = subprocess.Popen('dpkg-query -l linux-image-*-amd64'.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     output, err = proc.communicate()
 
-    if not err:
-        matched_versions = re.findall("^(?:ii|hi)\s+linux\-image[^\s]+\s+(\S+)", output, re.MULTILINE)
-        if len(matched_versions) >= 1:
-            if len(matched_versions) is 1:
-                installed_kernel_version = matched_versions[0]
-            else:
-                latest_installed_version = matched_versions[0]
+    if err:
+        return False, f'Error retrieving installed kernel version: {str(err)}'
 
-                for current_version in matched_versions:
-                    vc = version_compare(latest_installed_version, current_version)
-                    if vc < 0:
-                        latest_installed_version = current_version
-
-                installed_kernel_version = latest_installed_version
-        else:
-            return False, 'Cannot retrieve installed kernel version'
+    matched_versions = re.findall("^(?:ii|hi)\s+linux\-image[^\s]+\s+(\S+)", output, re.MULTILINE)
+    if len(matched_versions) < 1:
+        return False, 'Cannot retrieve installed kernel version'
+    if len(matched_versions) is 1:
+        installed_kernel_version = matched_versions[0]
     else:
-        return False, 'Error retrieving installed kernel version: %s' % str(err)
+        latest_installed_version = matched_versions[0]
 
+        for current_version in matched_versions:
+            vc = version_compare(latest_installed_version, current_version)
+            if vc < 0:
+                latest_installed_version = current_version
+
+        installed_kernel_version = latest_installed_version
     return True, (running_kernel_version != installed_kernel_version)
 
 

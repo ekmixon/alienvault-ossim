@@ -9,7 +9,7 @@ project = 'Alienvault REST API'
 copyright = '2013, Alienvault Development Team'
 version = '4.4'
 release = '4.4.0'
-html_title = '%s (%s)' % (project, release)
+html_title = f'{project} ({release})'
 html_short_title = 'Alienvault'
 
 # Choose a slightly better theme than default.

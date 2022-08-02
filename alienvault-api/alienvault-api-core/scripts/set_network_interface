@@ -68,6 +68,6 @@ if __name__ == "__main__":
         print >> sys.stderr,"Can't modify the /etc/network/interfaces"
         exit(-1)
 
-    
+
 
     exit(0)

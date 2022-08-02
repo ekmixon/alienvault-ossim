@@ -63,10 +63,7 @@ def get_float_value_from_string(value):
 
 def get_uuid_string_from_bytes(uuid_bytes):
     """Returns the uuid canonical string from a set of bytes"""
-    if uuid_bytes is not None:
-        return str(UUID(bytes=uuid_bytes))
-    else:
-        return ""
+    return str(UUID(bytes=uuid_bytes)) if uuid_bytes is not None else ""
 
 
 def get_ip_str_from_bytes(ip_bytes):
@@ -90,11 +87,7 @@ def get_ip_bin_from_str(ip_str):
 
 
 def get_ip_hex_from_str(ip_str):
-    ip_hex = None
-    ip_bin = get_ip_bin_from_str(ip_str)
-    if ip_bin:
-        ip_hex = hexlify(ip_bin)
-    return ip_hex
+    return hexlify(ip_bin) if (ip_bin := get_ip_bin_from_str(ip_str)) else None
 
 
 def get_bytes_from_uuid(uuid_str):
@@ -131,15 +124,11 @@ def is_json_true(key):
     """
     Checking for json boolean params
     """
-    if key is None:
-        return False
-    return key == '1' or key.lower() == 'true'
+    return False if key is None else key == '1' or key.lower() == 'true'
 
 
 def is_json_false(key):
-    if key is None:
-        return False
-    return key == '0' or key.lower() == 'false'
+    return False if key is None else key == '0' or key.lower() == 'false'
 
 
 def is_json_boolean(key):
@@ -158,9 +147,7 @@ def is_valid_ipv4(string_ip):
 
 def is_valid_ipv4_cidr(string_cidr):
     """Returns true if the given string is a valid ip v4 CIDR, otherwise returns false"""
-    if valid_ip4_cidr_regex.match(string_cidr):
-        return True
-    return False
+    return bool(valid_ip4_cidr_regex.match(string_cidr))
 
 
 def is_valid_uuid(uuid_str):
@@ -178,9 +165,7 @@ def get_base_path_from_system_id(system_id):
 
 def is_valid_ossec_agent_id(string_id):
     """Returns true if the given string is a valid Ossec Agent ID, otherwise returns false"""
-    if valid_ossec_agent_id_regex.match(string_id):
-        return True
-    return False
+    return bool(valid_ossec_agent_id_regex.match(string_id))
 
 
 def create_local_directory(path):
@@ -203,8 +188,15 @@ def set_owner_and_group(user, group, filename):
         gid = grp.getgrnam(group).gr_gid
         os.chown(filename, int(uid), int(gid))
     except Exception as err:
-        api_log.error("Error setting the owner/group to the file %s <%s>" % (filename, str(err)))
-        return False, "Error setting the owner/group to the file %s <%s>" % (filename, str(err))
+        api_log.error(
+            f"Error setting the owner/group to the file {filename} <{str(err)}>"
+        )
+
+        return (
+            False,
+            f"Error setting the owner/group to the file {filename} <{str(err)}>",
+        )
+
     return True, ""
 
 
@@ -212,8 +204,15 @@ def set_file_permissions(filename, mode):
     try:
         os.chmod(filename, mode)
     except Exception as err:
-        api_log.error("Error setting the permissions to the file %s <%s>" % (filename, str(err)))
-        return False, "Error setting the permissions to the file %s <%s>" % (filename, str(err))
+        api_log.error(
+            f"Error setting the permissions to the file {filename} <{str(err)}>"
+        )
+
+        return (
+            False,
+            f"Error setting the permissions to the file {filename} <{str(err)}>",
+        )
+
     return True, ""
 
 
@@ -223,9 +222,7 @@ def set_ossec_file_permissions(filename):
         return success,result
     # Read/write for user and group
     success, result = set_file_permissions(filename, stat.S_IRGRP | stat.S_IWGRP | stat.S_IRUSR | stat.S_IWUSR)
-    if not success:
-        return success,result
-    return True, ""
+    return (True, "") if success else (success, result)
 
 
 def touch_file(path):
@@ -274,7 +271,7 @@ def secure_path_join(base_path, *args):
         if not normalized_path.startswith(base_path):
             return False, "Invalid path"
     except Exception as e:
-        return False, "Error building path: %s" % str(e)
+        return False, f"Error building path: {str(e)}"
 
     return True, normalized_path
 
@@ -295,7 +292,10 @@ def utc_to_local(utc_date, timezone):
         local_tz = pytz.timezone(timezone)
         local_date = utc_date.replace(tzinfo=pytz.utc).astimezone(local_tz)
     except Exception as err:
-        api_log.error("[utc_to_local] There was an error converting the date to local time: %s" % str(err))
+        api_log.error(
+            f"[utc_to_local] There was an error converting the date to local time: {str(err)}"
+        )
+
         # Saving the utc_date as local date to avoid further errors
         local_date = utc_date
 
@@ -316,9 +316,12 @@ def get_tz_offset(tz):
         offset = datetime.now(pytz.timezone(tz)).strftime('%z')
         regexp = re.compile('(\+|\-)(\d\d)(\d\d)')
         matcher = regexp.search(offset)
-        format_offset = "%s%s:%s" % (matcher.group(1), matcher.group(2), matcher.group(3))
+        format_offset = f"{matcher[1]}{matcher[2]}:{matcher[3]}"
     except Exception as err:
-        api_log.error("[get_tz_offset] There was an error getting the timezone offset: %s" % str(err))
+        api_log.error(
+            f"[get_tz_offset] There was an error getting the timezone offset: {str(err)}"
+        )
+
         format_offset = '+00:00'
 
     return format_offset

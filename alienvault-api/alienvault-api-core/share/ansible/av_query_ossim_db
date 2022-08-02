@@ -68,11 +68,7 @@ import os
 def get_json_from_query(querydata):
     objlist = []
     for row in querydata:
-        d = {}
-        for key,value in row.iteritems():
-            #json is transmitted as utf8. 
-            #Binary data should by encoded. so... encode all fields
-            d[key] = base64.b64encode(str(value))
+        d = {key: base64.b64encode(str(value)) for key, value in row.iteritems()}
         objlist.append(d)
     return json.dumps(objlist)
 

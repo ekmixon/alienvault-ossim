@@ -66,6 +66,4 @@ def send_mail(system_id):
     attachments = request.args.get("attachments","") # Comma separated file list
 
     (success, data) = run_send_email (system_id, host,port,sender,recipients,subject, body, user,passwd, use_ssl, attachments)
-    if not success:
-        return make_error(data, 404)
-    return make_ok(result=data)
+    return make_ok(result=data) if success else make_error(data, 404)

@@ -69,8 +69,6 @@ class MonitorSensorIDS(Monitor):
         :return: True on success, False otherwise
 
         """
-        rt = True
-
         # TODO: This code is not being used currently. It should be refactorized
         # before use it
         # self.remove_monitor_data()
@@ -115,7 +113,7 @@ class MonitorSensorIDS(Monitor):
         #     rt = False
         #     logger.error("Something wrong happen while running the monitor..%s, %s" % (self.get_monitor_id(),
         #                                                                                    str(e)))
-        return rt
+        return True
 
 
 class MonitorVulnerabilityScans(Monitor):
@@ -135,8 +133,6 @@ class MonitorVulnerabilityScans(Monitor):
 
         :return: True on success, False otherwise
         """
-        rt = True
-
         # TODO: This code is not being used currently. It should be refactorized
         # before use it
         # try:
@@ -166,7 +162,7 @@ class MonitorVulnerabilityScans(Monitor):
         #     logger.error("Something wrong happen while running the monitor..%s, %s" % (self.get_monitor_id(),
         #         str(e)))
         #     rt = False
-        return rt
+        return True
 
 
 class MonitorSensorLocation(Monitor):
@@ -187,8 +183,6 @@ class MonitorSensorLocation(Monitor):
 
         :return: True on success, False otherwise
         """
-        rt = True
-
         # TODO: This code is not being used currently. It should be refactorized
         # before use it
         # try:
@@ -213,7 +207,7 @@ class MonitorSensorLocation(Monitor):
         #     logger.error("Something wrong happen while running the monitor..%s, %s" % (self.get_monitor_id(),
         #         str(e)))
         #     rt = False
-        return rt
+        return True
 
 
 class MonitorSensorDroppedPackages(Monitor):
@@ -330,7 +324,7 @@ class MonitorPluginIntegrity(Monitor):
 
         success, local_ip = get_system_ip_from_local(local_loopback=False)
         if not success:
-            logger.error("Cannot retrieve local system IP: %s" % str(local_ip))
+            logger.error(f"Cannot retrieve local system IP: {str(local_ip)}")
             return False
 
         # Check if this is professional or not.
@@ -356,7 +350,7 @@ class MonitorPluginIntegrity(Monitor):
                     #Save the data to the monitor_data table
                     self.save_data(system_id, ComponentTypes.SENSOR, self.get_json_message(monitor_data))
                 except Exception as e:
-                    logger.error("[MonitorPluginIntegrity] Error: %s" % str(e))
+                    logger.error(f"[MonitorPluginIntegrity] Error: {str(e)}")
             else:
                 logger.error("Can't obtain integrity plugin information from system '%s'", system_id)
 
@@ -463,8 +457,11 @@ class MonitorEnabledPluginsLimit(Monitor):
                     'plugins_enabled_total': enabled_total,
                     'plugins_allowed_to_add': max_limit_threshold - enabled_total,
                     'limit_reached': enabled_total >= max_limit_threshold,
-                    'warning_reached': (warning_threshold <= enabled_total) and (enabled_total < max_limit_threshold)
+                    'warning_reached': warning_threshold
+                    <= enabled_total
+                    < max_limit_threshold,
                 }
+
                 if not self.save_data(sensor_id, ComponentTypes.SENSOR, self.get_json_message(monitor_data)):
                     logger.error("[MonitorEnabledPluginsLimit] Cannot save monitor info")
             except APIException as e:
@@ -491,7 +488,7 @@ class MonitorSyncCustomPlugins(Monitor):
 
         # Check if we have custom plugins. We need only cfg
         local_path = "/etc/alienvault/plugins/custom/"
-        plugins_to_sync = glob.glob(local_path + '*.cfg')
+        plugins_to_sync = glob.glob(f'{local_path}*.cfg')
         if not plugins_to_sync:
             logger.info('Nothing to sync...')
             return True
@@ -502,7 +499,10 @@ class MonitorSyncCustomPlugins(Monitor):
         result, systems = get_systems(system_type="Sensor", exclusive=True)
 
         if not result:
-            logger.error("[MonitorSyncCustomPlugins] Can't retrieve the system info: {}".format(str(systems)))
+            logger.error(
+                f"[MonitorSyncCustomPlugins] Can't retrieve the system info: {str(systems)}"
+            )
+
             return False
 
         for (system_id, system_ip) in systems:
@@ -512,6 +512,6 @@ class MonitorSyncCustomPlugins(Monitor):
                                           local_file_path=plugin_file_path,
                                           remote_file_path=plugin_file_path)
                 if not success:
-                    logger.error("[MonitorSyncCustomPlugins] Can't rsync with {}".format(system_ip))
+                    logger.error(f"[MonitorSyncCustomPlugins] Can't rsync with {system_ip}")
                     return False
         return True

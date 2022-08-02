@@ -39,8 +39,11 @@ class APICannotResolveSensorID(APIException):
 
 class APICannotAddSensor(APIException):
     def __init__(self, sensor_id, log=None):
-        msg = "Cannot add the given sensor <{0}>.".format(sensor_id)
-        msg += " Check the system is reachable and the password is correct" 
+        msg = (
+            "Cannot add the given sensor <{0}>.".format(sensor_id)
+            + " Check the system is reachable and the password is correct"
+        )
+
         super(APICannotAddSensor, self).__init__(
             message=msg,
             log=log)

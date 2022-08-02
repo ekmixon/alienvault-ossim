@@ -49,7 +49,4 @@ def support(system_id):
         return make_bad_request("Missing param ticket")
 
     (success, data) = get_support_info (system_id, ticket)
-    if not success:
-        return make_error (data, 500)
-
-    return make_ok (**data)
+    return make_ok (**data) if success else make_error (data, 500)

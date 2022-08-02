@@ -58,11 +58,11 @@ def get_server_status(server_ip):
     data = ""
     try:
         http_conn = HttpConn(current_user.login, current_user.av_pass, server_ip, SERVER_PORT)
-        url_request = "http://%s:40009/server/status" % server_ip
+        url_request = f"http://{server_ip}:40009/server/status"
         data = http_conn.do_request(url_request, "")
     except:
         rc = False
-        data ="An error occurred while retrieving the server status %s" % server_ip
+        data = f"An error occurred while retrieving the server status {server_ip}"
     return rc, data
 
 @blueprint.route('', methods=['GET'])
@@ -78,7 +78,7 @@ def get_servers():
                 server_list.append((server_id, {'admin_ip': server[1]['admin_ip'], 'hostname': server[1]['hostname'],'system_id': server[1]['uuid']}))
 
         return make_ok(servers=dict(server_list))
-    current_app.logger.error ("server: get_servers error: " + str(server_data))
+    current_app.logger.error(f"server: get_servers error: {str(server_data)}")
     return make_error("Cannot retrieve servers info", 500)
 
 @blueprint.route('/<server_id>/status', methods=['GET'])
@@ -88,16 +88,14 @@ def get_servers():
 def get_status(server_id):
     rc, server_ip = get_server_ip_from_server_id(server_id)
     if not rc:
-        return make_error("Error while retrieving the server ip:%s" % server_ip, 500)
+        return make_error(f"Error while retrieving the server ip:{server_ip}", 500)
     rc, data = get_server_status(server_ip)
-    if not rc:
-        return make_error(data,500)
-    return make_ok(result=rc, data=data)
+    return make_ok(result=rc, data=data) if rc else make_error(data,500)
 
 def get_data_from_status(server_id, dataname):
     rc, server_ip = get_server_ip_from_server_id(server_id)
     if not rc:
-        return make_error("Error while retrieving the server ip:%s" % server_ip, 500)
+        return make_error(f"Error while retrieving the server ip:{server_ip}", 500)
 
     rc, data = get_server_status(server_ip)
     if not rc:
@@ -107,10 +105,17 @@ def get_data_from_status(server_id, dataname):
         if not json_data.has_key("result"):
             return make_error("Invalid Json Data from the server. Result Not found", 500)
 
-        if not json_data["result"].has_key(dataname):
-            return make_error("Invalid Json Data from the server. %s Not found" % dataname, 500)
+        return (
+            make_ok(
+                serverid=server_id,
+                registered_sensors=json_data['result'][dataname],
+            )
+            if json_data["result"].has_key(dataname)
+            else make_error(
+                f"Invalid Json Data from the server. {dataname} Not found", 500
+            )
+        )
 
-        return make_ok(serverid=server_id, registered_sensors=json_data['result'][dataname])
     except Exception as e:
         return make_error("An error occurred while parsing the status message from the server", 500)
 
@@ -202,7 +207,5 @@ def reconfigure_nfsen(server_id):
         server_id(str): The server uuid or local
     """
     success, msg = apimethod_run_nfsen_reconfig(server_id)
-    if not success:
-        return make_error(msg, 500)
-    return make_ok(rc=msg)
+    return make_ok(rc=msg) if success else make_error(msg, 500)
 

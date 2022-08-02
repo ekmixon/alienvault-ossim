@@ -75,10 +75,7 @@ def get_ossec_get_logs(sensor_id):
     log = request.args.get("log")
     nlogs = request.args.get("number_of_logs")
     (result, data) = ossec_get_logs(sensor_id, log, nlogs)
-    if result:
-        return make_ok(lines=data)
-    else:
-        return make_error(data, 500)
+    return make_ok(lines=data) if result else make_error(data, 500)
 
 
 @blueprint.route('/<sensor_id>/ossec/preconfigured_agent', methods=['PUT'])
@@ -101,10 +98,7 @@ def get_ossec_preconfigured_agent(sensor_id):
         return make_bad_request("Invalid agent_id value. Allowed values are [0-9]{1,4}")
 
     (result, data) = ossec_get_preconfigured_agent(sensor_id, agent_id, agent_type)
-    if result:
-        return make_ok(path=data)
-
-    return make_error(data, 500)
+    return make_ok(path=data) if result else make_error(data, 500)
 
 
 @blueprint.route('/<sensor_id>/ossec/agent/<agent_id>/root_check', methods=['GET'])
@@ -119,10 +113,7 @@ def get_ossec_rootcheck(sensor_id, agent_id):
         @param agent_id: Agent id. Must be a string that match [0-9]{1,4}
     """
     (result, data) = ossec_rootcheck(sensor_id, agent_id)
-    if result:
-        return make_ok(rootcheck=data)
-    else:
-        return make_error(data, 500)
+    return make_ok(rootcheck=data) if result else make_error(data, 500)
 
 
 @blueprint.route('/<sensor_id>/ossec/check', methods=['GET'])
@@ -146,9 +137,7 @@ def get_ossec_check(sensor_id):
         return make_bad_request("Invalid agent name. Allowed characters are [^a-zA-Z0-9_\\-()]+")
 
     (result, data) = ossec_get_check(sensor_id=sensor_id, agent_name=agent_name, check_type=check_type)
-    if result:
-        return make_ok(check=data)
-    return make_error(data, 500)
+    return make_ok(check=data) if result else make_error(data, 500)
 
 
 @blueprint.route('/<sensor_id>/ossec/agent', methods=['GET'])
@@ -173,10 +162,7 @@ def get_ossec_available_agents(sensor_id):
 @accepted_url({'sensor_id': {'type': UUID, 'values': ['local']}})
 def get_ossec_active_agents(sensor_id):
     (result, data) = ossec_get_available_agents(sensor_id, 'list_online_agents')
-    if result:
-        return make_ok(agents=data)
-    else:
-        return make_error(data, 500)
+    return make_ok(agents=data) if result else make_error(data, 500)
 
 
 @blueprint.route('/<sensor_id>/ossec/agent/<agent_id>/restart', methods=['PUT'])
@@ -186,10 +172,7 @@ def get_ossec_active_agents(sensor_id):
                'agent_id': {'type': str, }})
 def get_ossec_restart_agent(sensor_id, agent_id):
     (result, data) = ossec_get_available_agents(sensor_id, 'restart_agent', agent_id)
-    if result:
-        return make_ok(msg=data)
-    else:
-        return make_error(data, 500)
+    return make_ok(msg=data) if result else make_error(data, 500)
 
 
 @blueprint.route('/<sensor_id>/ossec/agent/<agent_id>/integrity_check', methods=['PUT'])
@@ -199,18 +182,18 @@ def get_ossec_restart_agent(sensor_id, agent_id):
                'agent_id': {'type': str, }})
 def get_ossec_check_integrity_agent(sensor_id, agent_id):
     (result, data) = ossec_get_available_agents(sensor_id, 'integrity_check', agent_id)
-    if result:
-        return make_ok(msg=data)
-    else:
-        return make_error(data, 500)
+    return make_ok(msg=data) if result else make_error(data, 500)
 
 
 def ossec_control_interface(sensor_id, operation, option):
     if operation not in ["start", "stop", "restart", "enable", "disable", "status", "status"]:
         return make_bad_request("Invalid operation. Allowed values are: ['start','stop','restart','enable','disable','status']")
-    if operation in ["enable", "disable"]:
-        if option not in ["client-syslog", "agentless", "debug"]:
-            return make_bad_request("Invalid option value. Allowed values are: ['client-syslog','agentless','debug']")
+    if operation in ["enable", "disable"] and option not in [
+        "client-syslog",
+        "agentless",
+        "debug",
+    ]:
+        return make_bad_request("Invalid option value. Allowed values are: ['client-syslog','agentless','debug']")
 
     (result, data) = apimethod_ossec_control(sensor_id, operation, option)
     if result:
@@ -264,10 +247,7 @@ def put_ossec_add_agentless(sensor_id):
     password = request.args.get('password', None)
     supassword = request.args.get('supassword', None)
     (success, data) = ossec_add_agentless(sensor_id, host, user, password, supassword)
-    if not success:
-        return make_error(data, 500)
-    else:
-        return make_ok(msg=str(data))
+    return make_ok(msg=str(data)) if success else make_error(data, 500)
 
 
 
@@ -277,10 +257,7 @@ def put_ossec_add_agentless(sensor_id):
 @accepted_url({'sensor_id' : {'type': UUID, 'values': ['local']}})
 def get_agentless_list(sensor_id):
     (success, data) = apimethod_get_agentless_list(sensor_id)
-    if not success:
-        return make_error(data, 500)
-    else:
-        return make_ok(agents=data)
+    return make_ok(agents=data) if success else make_error(data, 500)
 
 
 @blueprint.route('/<sensor_id>/ossec/agentless/passlist', methods=['GET'])
@@ -289,10 +266,7 @@ def get_agentless_list(sensor_id):
 @accepted_url({'sensor_id' : {'type': UUID, 'values': ['local']}})
 def get_agentless_passlist(sensor_id):
     (success, data) = apimethod_get_agentless_passlist(sensor_id)
-    if not success:
-        return make_error(data, 500)
-    else:
-        return make_ok(local_path=str(data))
+    return make_ok(local_path=str(data)) if success else make_error(data, 500)
 
 
 @blueprint.route('/<sensor_id>/ossec/agentless/passlist', methods=['PUT'])
@@ -301,10 +275,7 @@ def get_agentless_passlist(sensor_id):
 @accepted_url({'sensor_id' : {'type': UUID, 'values': ['local']}})
 def put_agentless_passlist(sensor_id):
     (success, data) = apimethod_put_agentless_passlist(sensor_id)
-    if not success:
-        return make_error(data, 500)
-    else:
-        return make_ok(message=str(data))
+    return make_ok(message=str(data)) if success else make_error(data, 500)
 
 
 @blueprint.route('/<sensor_id>/ossec/agent/<agent_id>/control/detail', methods=['GET'])
@@ -314,10 +285,7 @@ def put_agentless_passlist(sensor_id):
                'agent_id': {'type': str, }})
 def get_ossec_agent_control_detail(sensor_id, agent_id):
     (result, data) = apimethod_ossec_get_agent_detail(sensor_id, agent_id)
-    if result:
-        return make_ok(agent_detail=data)
-    else:
-        return make_error(data, 500)
+    return make_ok(agent_detail=data) if result else make_error(data, 500)
 
 
 @blueprint.route('/<sensor_id>/ossec/agent/<agent_id>/sys_check', methods=['GET'])
@@ -327,9 +295,6 @@ def get_ossec_agent_control_detail(sensor_id, agent_id):
                'agent_id': {'type': str, }})
 def get_ossec_get_syscheck(sensor_id, agent_id):
     (result, data) = apimethod_ossec_get_syscheck(sensor_id, agent_id)
-    if result:
-        return make_ok(stdout=data)
-    else:
-        return make_error(data, 500)
+    return make_ok(stdout=data) if result else make_error(data, 500)
 
 

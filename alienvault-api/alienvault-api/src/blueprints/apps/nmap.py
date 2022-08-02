@@ -120,9 +120,9 @@ def do_nmap_scan():
     scan_type = request.form.get('scan_type', None)
     scan_timing = request.form.get('scan_timing', None)
     scan_ports = request.form.get('scan_ports', None)
-    rdns = True if request.form.get('rdns', 'true') == 'true' else False
-    autodetect = True if request.form.get('autodetect', 'true') == 'true' else False
-    idm = True if request.form.get('idm', 'false') == 'true' else False
+    rdns = request.form.get('rdns', 'true') == 'true'
+    autodetect = request.form.get('autodetect', 'true') == 'true'
+    idm = request.form.get('idm', 'false') == 'true'
 
     targets = target.split(' ')
     ftargets = []
@@ -144,19 +144,26 @@ def do_nmap_scan():
         except:
             pass
 
-    if len(ftargets) < 1:
+    if not ftargets:
         return make_error("No valid targets to scan", 500)
 
     try:
         # Delete all orphan scans which are running on background for current user.
         apimethod_delete_running_scans(current_user.login)
     except Exception as err:
-        return make_error("Cannot flush old scans before running new nmap scan %s" % str(err), 500)
+        return make_error(
+            f"Cannot flush old scans before running new nmap scan {str(err)}",
+            500,
+        )
+
 
     targets = ','.join(ftargets)
     if targets and excludes:
         # Prepare new targets string with excludes. e.g "192.168.87.0/22,!192.168.87.222/32,!192.168.87.223/32"
-        targets += ',' + ','.join(['!{}'.format(exclude_item) for exclude_item in excludes.split(',')])
+        targets += ',' + ','.join(
+            [f'!{exclude_item}' for exclude_item in excludes.split(',')]
+        )
+
 
     job = run_nmap_scan.delay(sensor_id=sensor_id,
                               target=targets,

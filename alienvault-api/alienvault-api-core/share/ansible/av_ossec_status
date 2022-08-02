@@ -101,7 +101,7 @@ def _is_debug_enabled():
         return False
     f = open(ossec_plist,'r')
     debug = False
-    for line in f.readlines():
+    for line in f:
         if line.rstrip() =="DEBUG_CLI=\"-d\"":
             debug = True
         if line.rstrip() =="DEBUG_CLI=\"\"":
@@ -151,7 +151,7 @@ def get_general_status():
 
 
 def main():
-    module = AnsibleModule(argument_spec=dict())
+    module = AnsibleModule(argument_spec={})
     result,data = get_general_status()
     if not result:
         module.fail_json (msg=data)

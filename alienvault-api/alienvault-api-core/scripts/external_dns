@@ -39,8 +39,8 @@ from apimethods.system.network import dns_is_external
 # ToDo Refactor (Use OptionParser)
 def main():
     result = 0
-    count = 0
     if len(sys.argv) == 2:
+        count = 0
         for ip in sys.argv[1].split(","):
             r = dns_is_external(ip)
             if r == -1:

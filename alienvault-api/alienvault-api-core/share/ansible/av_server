@@ -51,11 +51,11 @@ import json, base64, httplib
 
 SERVER_COMMANDS = ['server_stats', 'per_session_stats', 'forwarding_stats', 'rserver_stats']
 
-def build_headers (username, password):
+def build_headers(username, password):
     headers={}
     if username != None:
-        base64string = base64.encodestring('%s:%s' % (username, password)).replace('\n','')
-        authheader =  "Basic %s" % base64string
+        base64string = base64.encodestring(f'{username}:{password}').replace('\n', '')
+        authheader = f"Basic {base64string}"
         headers["Authorization"] =  authheader
     headers["Content-type"] = "application/x-www-form-urlencoded"
     headers["Accept"] ="application/json"

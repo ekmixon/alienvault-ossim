@@ -72,7 +72,6 @@ class AVAnsibleCallbacks(object):
 
     def __init__(self):
         self._lasterror = ''
-        pass
 
     @property
     def lasterror(self):
@@ -180,8 +179,7 @@ class Ansible(object):
                                        sudo=use_sudo,
                                        timeout=timeout
                                        )
-        data = runner.run()
-        return data
+        return runner.run()
 
     def run_playbook(self,
                      playbook,
@@ -221,8 +219,7 @@ class Ansible(object):
         use_transport = AnsibleConstants.DEFAULT_TRANSPORT
         if local:
             use_transport = "local"
-            host_list = []
-            host_list.append("127.0.0.1")
+            host_list = ["127.0.0.1"]
         playbook = ansible.playbook.PlayBook(playbook=playbook,
                                              host_list=host_list if host_list != [] else self.__host_list,
                                              stats=ans_callbacks.AggregateStats(),

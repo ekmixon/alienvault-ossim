@@ -233,12 +233,23 @@ def ossec_get_logs(system_ip, ossec_log, number_of_lines):
     if nlogs < 0 or nlogs > 5000:
         return (False, "Bad number_of_lines, '%s' negative or more than 5000" % number_of_lines)
     # Now call the Ansible module
-    command = "/usr/share/ossim/scripts/ossec-logs.sh %s %s" % (ossec_log, number_of_lines)
+    command = (
+        f"/usr/share/ossim/scripts/ossec-logs.sh {ossec_log} {number_of_lines}"
+    )
+
     response = _ansible.run_module(host_list=[system_ip], module="shell", args=command, use_sudo=True)
     if system_ip in response['dark'] or 'unreachable' in response:
-        return False, "[ossec_get_logs] Something wrong happened while running ansible command %s" % str(response)
+        return (
+            False,
+            f"[ossec_get_logs] Something wrong happened while running ansible command {str(response)}",
+        )
+
     if 'failed' in response['contacted'][system_ip]:
-        return False, "[ossec_get_logs]  Something wrong happened while running ansible command %s" % str(response)
+        return (
+            False,
+            f"[ossec_get_logs]  Something wrong happened while running ansible command {str(response)}",
+        )
+
     logs = response['contacted'][system_ip]['stdout'].split("\n")
     return (True, logs)
 
@@ -257,7 +268,8 @@ def ossec_create_preconfigured_agent(sensor_ip, agent_id, agent_type="windows", 
     if re.match(r"^[0-9]{1,4}$", agent_id) is None:
         return False, "Invalid agent ID. The agent ID has to be 1-4 digital characters"
     try:
-        command = "/usr/share/ossim/scripts/ossec-download-agent.sh  %s %s" % (agent_id, agent_type)
+        command = f"/usr/share/ossim/scripts/ossec-download-agent.sh  {agent_id} {agent_type}"
+
         response = _ansible.run_module(host_list=[sensor_ip], module="shell", args=command, use_sudo=True)
         result, msg = ansible_is_valid_response(sensor_ip, response)
         if not result:
@@ -265,20 +277,31 @@ def ossec_create_preconfigured_agent(sensor_ip, agent_id, agent_type="windows", 
         script_return_code = int(response['contacted'][sensor_ip]['rc'])
         script_stdout = response['contacted'][sensor_ip]['stdout']
         if script_return_code != 0:
-            return False, "An error occurred while generating the ossec agent. Script return code is %s. Output: %s" % (script_return_code, script_stdout)
+            return (
+                False,
+                f"An error occurred while generating the ossec agent. Script return code is {script_return_code}. Output: {script_stdout}",
+            )
+
         # unix agent generation is not available. The script should fail before arrive to this point
         if agent_type == "windows":
-            generated_agent_path = "/usr/share/ossec-generator/agents/ossec_installer_%s.exe" % agent_id
+            generated_agent_path = f"/usr/share/ossec-generator/agents/ossec_installer_{agent_id}.exe"
+
         # We have to copy the remote binary to our local system.
         if not os.path.exists(destination_path):
             return False, "Destination folder doesn't exists"
-        response = _ansible.run_module(host_list=[sensor_ip], module="fetch", args="dest=%s src=%s flat=yes" % (destination_path, generated_agent_path), use_sudo=True)
+        response = _ansible.run_module(
+            host_list=[sensor_ip],
+            module="fetch",
+            args=f"dest={destination_path} src={generated_agent_path} flat=yes",
+            use_sudo=True,
+        )
+
         result, msg = ansible_is_valid_response(sensor_ip, response)
         if not result:
-            return False, "Something wrong happen while fetching the file %s" % msg
+            return False, f"Something wrong happen while fetching the file {msg}"
     except Exception as err:
-        return False, "An error occurred while generating the ossec agent. %s" % str(err)
-    return True, "%sossec_installer_%s.exe" % (destination_path, agent_id)
+        return False, f"An error occurred while generating the ossec agent. {str(err)}"
+    return True, f"{destination_path}ossec_installer_{agent_id}.exe"
 
 
 def ossec_rootcheck(system_ip, agent_id=""):
@@ -289,7 +312,7 @@ def ossec_rootcheck(system_ip, agent_id=""):
     if re.match(r"^[0-9]{1,4}$", agent_id) is None:
         return False, "Invalid agent ID. The agent ID has to be 1-4 digital characters"
     try:
-        command = "/usr/share/ossim/scripts/ossec-rootcheck.sh  %s" % agent_id
+        command = f"/usr/share/ossim/scripts/ossec-rootcheck.sh  {agent_id}"
         response = _ansible.run_module(host_list=[system_ip], module="shell", args=command, use_sudo=True)
         result, msg = ansible_is_valid_response(system_ip, response)
         if not result:
@@ -297,9 +320,17 @@ def ossec_rootcheck(system_ip, agent_id=""):
         script_return_code = int(response['contacted'][system_ip]['rc'])
         script_output = response['contacted'][system_ip]['stdout']
         if script_return_code != 0:
-            return False, "[ossec_rootcheck] Something wrong happened while running ansible command %s" % str(response)
+            return (
+                False,
+                f"[ossec_rootcheck] Something wrong happened while running ansible command {str(response)}",
+            )
+
     except Exception as err:
-        return False, "[ossec_rootcheck] Something wrong happened while running ansible command %s" % str(err)
+        return (
+            False,
+            f"[ossec_rootcheck] Something wrong happened while running ansible command {str(err)}",
+        )
+
 
     #Splitting by char an empty string returns [''] and we need []
     output = script_output.split("\n") if script_output else []
@@ -323,7 +354,10 @@ def _ossec_parse_agent_list(data):
             if re.match(r"^[0-9]{1,4}$", agent_id) is not None:
                 result[agent_id] = {'name': name, 'ip': ipaddress, 'status': status}
             else:
-                api_log.info("[ossec_get_available_agents] Discarting info about agentless %s" % line)
+                api_log.info(
+                    f"[ossec_get_available_agents] Discarting info about agentless {line}"
+                )
+
     return result
 
 
@@ -359,15 +393,23 @@ def ossec_get_available_agents(system_ip, op_ossec='list_available_agents', agen
         # Now check the 'rc' field
         ans_rc = response['contacted'][system_ip]['rc']
         if ans_rc != 0:
-            return False, "[ossec_get_available_agents] Error: %s" % response['contacted'][system_ip]['data']
+            return (
+                False,
+                f"[ossec_get_available_agents] Error: {response['contacted'][system_ip]['data']}",
+            )
+
         # The msg field doesn't work in this case. The data is in 'data'
         if ansp.proc_func != None:
             data = ansp.proc_func(response['contacted'][system_ip]['data'])
         else:
             data = response['contacted'][system_ip]['data']
-        # I need to make some process if list_available_agents or list_online_agents are called
+            # I need to make some process if list_available_agents or list_online_agents are called
     except Exception as err:
-        return False, "[ossec_get_available_agents] Something wrong happened while running ansible command %s" % str(err)
+        return (
+            False,
+            f"[ossec_get_available_agents] Something wrong happened while running ansible command {str(err)}",
+        )
+
     return True, data
 
 
@@ -383,8 +425,6 @@ def ossec_get_check(system_ip, check_type, agent_name=""):
     data = ''
     try:
         if check_type == "lastscan":
-            # We need to exec TWO results
-            result_dict = {}
             command = "/usr/share/ossim/scripts/ossec_check.sh %s '%s'" % ("lastscan", agent_name)
             response = _ansible.run_module(host_list=[system_ip], module="shell", args=command, use_sudo=True)
             result, msg = ansible_is_valid_response(system_ip, response)
@@ -405,8 +445,7 @@ def ossec_get_check(system_ip, check_type, agent_name=""):
             last_syscheck = ""
             if matched_object is not None:
                 last_syscheck = matched_object.groupdict()['s_time']
-            result_dict['syscheck'] = last_syscheck
-
+            result_dict = {'syscheck': last_syscheck}
             matched_object = re.match(r"Last rootcheck scan started at: (?P<r_time>\d{10})",  script_output[1])
             last_rootcheck = ""
             if matched_object is not None:
@@ -452,24 +491,16 @@ def ossec_control(system_ip, operation, option):
     # TODO: This can be implemented as a module as well
     if operation not in ["start", "stop", "restart", "enable", "disable", "status"]:
         return False, "Invalid operation. Allowed values are: ['start','stop','restart','enable','disable','status']"
-    if operation == "enable" or operation == "disable":
-        if option not in ["client-syslog", "agentless", "debug"]:
-            return False, "Invalid option. Allowed values are: ['client-syslog','agentless','debug']"
+    if operation in ["enable", "disable"] and option not in [
+        "client-syslog",
+        "agentless",
+        "debug",
+    ]:
+        return False, "Invalid option. Allowed values are: ['client-syslog','agentless','debug']"
     try:
-        # Note:
-        # if you run the following command:
-        #  >>> ansible <yourip> -m shell -a "/var/ossec/bin/ossec-control restart "  -s
-        # ps output:
-        # avapi    12326  1.6  0.1  63308 14512 pts/2    S+   02:17   0:00 /usr/share/alienvault/api_core/bin/python /usr/share/alienvault/api_core/bin/ansible <yourip> -m command -a /var/ossec/bin/ossec-control restart -s
-        # root     12349  0.2  0.0      0     0 pts/7    Z+   02:17   0:00 [ossec-control] <defunct>
-        #
-        # The ossec-control becomes a defunct process. We've to investigate this in deep
-        # I think it's something related with the way ossec-control script works with the restart command
-        # The workaround is to redirect the standard output and error to /dev/null
-        data = {}
-        command = "/var/ossec/bin/ossec-control %s" % operation
+        command = f"/var/ossec/bin/ossec-control {operation}"
         if operation in ["enable", "disable"]:
-            command = "/var/ossec/bin/ossec-control %s %s" % (operation, option)
+            command = f"/var/ossec/bin/ossec-control {operation} {option}"
         if operation == "restart":
             command += " > /dev/null 2>&1"
         response = _ansible.run_module(host_list=[system_ip], module="shell", args=command, use_sudo=True)
@@ -483,11 +514,11 @@ def ossec_control(system_ip, operation, option):
         #status operation can return !=0. If one of the ossec process is not running the rc >0
         if script_return_code != 0 and operation != "status":
             return False, "[ossec_control] Something wrong happened while running ansible command ->'%s'" % str(response)
-        data['stdout'] = script_output
+        data = {'stdout': script_output}
         result, msg = ossec_get_status(system_ip)
         if not result:
             return False, "[ossec-control] Error getting the ossec status -> '%s'" % msg
-        data.update(msg)
+        data |= msg
     except Exception as err:
         return False, "[ossec_control] Something wrong happened while running ansible command ->  '%s'" % str(err)
 
@@ -514,10 +545,18 @@ def ossec_add_agentless(system_ip, host=None, user=None, password=None, supasswo
         @param supassword optional password use.
     """
     if not (host and user and password):
-        api_log.error("[ossec_add_agentless] Missing mandatory parameter: Host, user or password (%s, %s, %s)" % (host, user, password))
-        return (False, "[ossec_add_agentless] Missing mandatory parameter: Host, user or password (%s, %s, %s)" % (host, user, password))
+        api_log.error(
+            f"[ossec_add_agentless] Missing mandatory parameter: Host, user or password ({host}, {user}, {password})"
+        )
+
+        return (
+            False,
+            f"[ossec_add_agentless] Missing mandatory parameter: Host, user or password ({host}, {user}, {password})",
+        )
+
     try:
-        command = "/var/ossec/agentless/register_host.sh add %s@%s %s %s" % (user, host, password, supassword if supassword != None else '')
+        command = f"/var/ossec/agentless/register_host.sh add {user}@{host} {password} {supassword if supassword != None else ''}"
+
         response = _ansible.run_module(host_list=[system_ip], module="shell", args=command, use_sudo=True)
         result, msg = ansible_is_valid_response(system_ip, response)
         if not result:
@@ -540,7 +579,7 @@ def ossec_get_modified_registry_entries(system_ip, agent_id=""):
     if re.match(r"^[0-9]{1,4}$", agent_id) is None:
         return False, "Invalid agent ID. The agent ID has to be 1-4 digital characters"
     try:
-        command = "/var/ossec/bin/syscheck_control -s -r -i %s" % agent_id
+        command = f"/var/ossec/bin/syscheck_control -s -r -i {agent_id}"
         response = _ansible.run_module(host_list=[system_ip], module="shell", args=command, use_sudo=True)
         result, msg = ansible_is_valid_response(system_ip, response)
         if not result:
@@ -548,7 +587,11 @@ def ossec_get_modified_registry_entries(system_ip, agent_id=""):
         script_return_code = int(response['contacted'][system_ip]['rc'])
         script_output = response['contacted'][system_ip]['stdout']
         if script_return_code != 0:
-            return False, "[ossec_modified_windows_registry] Something wrong happened while running ansible command %s" % str(response)
+            return (
+                False,
+                f"[ossec_modified_windows_registry] Something wrong happened while running ansible command {str(response)}",
+            )
+
         output = {}
         index = 0
         for line in script_output.split("\n"):
@@ -556,20 +599,30 @@ def ossec_get_modified_registry_entries(system_ip, agent_id=""):
                 output[index] = line
                 index += 1
     except Exception as err:
-        return False, "[ossec_modified_windows_registry] Something wrong happened while running ansible command %s" % str(err)
+        return (
+            False,
+            f"[ossec_modified_windows_registry] Something wrong happened while running ansible command {str(err)}",
+        )
+
     return (True,  output)
 
 
 def ossec_get_configuration_rule(system_ip, rule_filename, destination_path=""):
     #file name validation:
     if not re.match(r'[A-Za-z0-9_\-]+\.xml', rule_filename):
-        return False, "Invalid rule filename <%s> " % str(rule_filename)
+        return False, f"Invalid rule filename <{str(rule_filename)}> "
     try:
-        ossec_rule_path = "/var/ossec/alienvault/rules/%s" % rule_filename
+        ossec_rule_path = f"/var/ossec/alienvault/rules/{rule_filename}"
         if not os.path.exists(destination_path):
             return False, "Destination folder doesn't exists"
         # From ansible doc: Recursive fetching may be supported in a later release.
-        response = _ansible.run_module(host_list=[system_ip], module="fetch", args="dest=%s src=%s flat=yes fail_on_missing=yes" % (destination_path, ossec_rule_path), use_sudo=True)
+        response = _ansible.run_module(
+            host_list=[system_ip],
+            module="fetch",
+            args=f"dest={destination_path} src={ossec_rule_path} flat=yes fail_on_missing=yes",
+            use_sudo=True,
+        )
+
         result, msg = ansible_is_valid_response(system_ip, response)
         if not result:
             return False,  str(msg)
@@ -579,21 +632,30 @@ def ossec_get_configuration_rule(system_ip, rule_filename, destination_path=""):
             return False, str(result)
 
     except Exception as err:
-        return False, "[ossec_get_configuration_rule] Something wrong happened while running ansible command %s" % str(err)
+        return (
+            False,
+            f"[ossec_get_configuration_rule] Something wrong happened while running ansible command {str(err)}",
+        )
+
     return True,destination_path+rule_filename
 
 
 def ossec_put_configuration_rule_file(system_ip, local_rule_filename, remote_rule_name):
     try:
-        ossec_rule_path = "/var/ossec/alienvault/rules/%s" % remote_rule_name
-        cmd_args = "src=%s dest=%s force=yes owner=root group=ossec mode=644" % (local_rule_filename, ossec_rule_path)
+        ossec_rule_path = f"/var/ossec/alienvault/rules/{remote_rule_name}"
+        cmd_args = f"src={local_rule_filename} dest={ossec_rule_path} force=yes owner=root group=ossec mode=644"
+
         response = _ansible.run_module(host_list=[system_ip], module="copy", args=cmd_args, use_sudo=True)
         result, msg = ansible_is_valid_response(system_ip, response)
         if not result:
             return False,  str(msg)
 
     except Exception as err:
-        return False, "[ossec_get_configuration_rule] Something wrong happened while running ansible command %s" % str(err)
+        return (
+            False,
+            f"[ossec_get_configuration_rule] Something wrong happened while running ansible command {str(err)}",
+        )
+
     return True, "Done"
 
 
@@ -637,7 +699,13 @@ def ossec_get_agentless_passlist(system_ip, destination_path=""):
     try:
         agentless_passfile = "/var/ossec/agentless/.passlist"
         # From ansible doc: Recursive fetching may be supported in a later release.
-        response = _ansible.run_module(host_list=[system_ip], module="fetch", args="dest=%s src=%s flat=yes fail_on_missing=yes" % (destination_path, agentless_passfile), use_sudo=True)
+        response = _ansible.run_module(
+            host_list=[system_ip],
+            module="fetch",
+            args=f"dest={destination_path} src={agentless_passfile} flat=yes fail_on_missing=yes",
+            use_sudo=True,
+        )
+
         result, msg = ansible_is_valid_response(system_ip, response)
         if not result:
             return False, str(msg)
@@ -646,7 +714,11 @@ def ossec_get_agentless_passlist(system_ip, destination_path=""):
         if not success:
             return False, str(result)
     except Exception as err:
-        return False, "[ossec_get_configuration_rule] Something wrong happened while running ansible command %s" % str(err)
+        return (
+            False,
+            f"[ossec_get_configuration_rule] Something wrong happened while running ansible command {str(err)}",
+        )
+
     return True, destination_path
 
 
@@ -656,14 +728,19 @@ def ossec_put_agentless_passlist(system_ip, local_passfile):
     """
     try:
         agentless_passfile = "/var/ossec/agentless/.passlist"
-        cmd_args = "src=%s dest=%s force=yes owner=root group=ossec mode=644" % (local_passfile, agentless_passfile)
+        cmd_args = f"src={local_passfile} dest={agentless_passfile} force=yes owner=root group=ossec mode=644"
+
         response = _ansible.run_module(host_list=[system_ip], module="copy", args=cmd_args, use_sudo=True)
         result, msg = ansible_is_valid_response(system_ip, response)
         if not result:
             return False,  str(msg)
 
     except Exception as err:
-        return False, "[ossec_get_configuration_rule] Something wrong happened while running ansible command %s" % str(err)
+        return (
+            False,
+            f"[ossec_get_configuration_rule] Something wrong happened while running ansible command {str(err)}",
+        )
+
     return True, "Done"
 
 
@@ -702,7 +779,7 @@ def ossec_get_ossec_agent_detail(system_ip, agent_id):
     if re.match(r"^[0-9]{1,4}$", agent_id) is None:
         return False, "Invalid agent ID. The agent ID has to be 1-4 digital characters"
     try:
-        command = "/var/ossec/bin/agent_control -i %s -s" % agent_id
+        command = f"/var/ossec/bin/agent_control -i {agent_id} -s"
         response = _ansible.run_module(host_list=[system_ip], module="shell", args=command, use_sudo=True)
         result, msg = ansible_is_valid_response(system_ip, response)
         if not result:
@@ -710,13 +787,18 @@ def ossec_get_ossec_agent_detail(system_ip, agent_id):
         script_return_code = int(response['contacted'][system_ip]['rc'])
         script_output = response['contacted'][system_ip]['stdout']
         if script_return_code != 0:
-            return False, "[ossec_get_ossec_agent_detail] Something wrong happened while running ansible command %s" % str(script_output)
-        output = []
-        for line in script_output.split("\n"):
-            if line != '':
-                output.append(line)
+            return (
+                False,
+                f"[ossec_get_ossec_agent_detail] Something wrong happened while running ansible command {str(script_output)}",
+            )
+
+        output = [line for line in script_output.split("\n") if line != '']
     except Exception as err:
-        return False, "[ossec_get_ossec_agent_detail] Something wrong happened while running ansible command %s" % str(err)
+        return (
+            False,
+            f"[ossec_get_ossec_agent_detail] Something wrong happened while running ansible command {str(err)}",
+        )
+
     return (True, output)
 
 
@@ -732,7 +814,7 @@ def ossec_get_syscheck(system_ip, agent_id):
     if not status:
         return False, msg
     try:
-        command = "/var/ossec/bin/syscheck_control -s -i %s " % agent_id
+        command = f"/var/ossec/bin/syscheck_control -s -i {agent_id} "
         response = _ansible.run_module(host_list=[system_ip], module="shell", args=command, use_sudo=True)
         result, msg = ansible_is_valid_response(system_ip, response)
         if not result:
@@ -740,7 +822,11 @@ def ossec_get_syscheck(system_ip, agent_id):
         script_return_code = int(response['contacted'][system_ip]['rc'])
         script_output = response['contacted'][system_ip]['stdout']
         if script_return_code != 0:
-            return False, "[ossec_get_syscheck] Something wrong happened while running ansible command %s" % str(response['contacted'][system_ip])
+            return (
+                False,
+                f"[ossec_get_syscheck] Something wrong happened while running ansible command {str(response['contacted'][system_ip])}",
+            )
+
         output = {}
         index = 0
         for line in script_output.split("\n"):
@@ -782,4 +868,4 @@ def make_err_message(func_name, err_msg="", err_reason=""):
     Returns:
         Formatted err_msg string.
     """
-    return "{} {}{} {}".format(func_name, err_msg, ':' if err_msg and err_reason else '', err_reason)
+    return f"{func_name} {err_msg}{':' if err_msg and err_reason else ''} {err_reason}"

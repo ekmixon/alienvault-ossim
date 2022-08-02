@@ -133,8 +133,20 @@ def before_all(context):
     for k in cp.serialize.keys():
       u.__dict__[k] = cp.__dict__[k]
     # Generate a random string of 8 chars
-    user = "".join([random.choice(string.ascii_letters + string.digits) for n in xrange(8)])
-    upass = "".join([random.choice(string.ascii_letters + string.digits) for n in xrange(8)])
+    user = "".join(
+        [
+            random.choice(string.ascii_letters + string.digits)
+            for _ in xrange(8)
+        ]
+    )
+
+    upass = "".join(
+        [
+            random.choice(string.ascii_letters + string.digits)
+            for _ in xrange(8)
+        ]
+    )
+
     u.login = user
 
     u.av_pass = hashlib.md5 (upass).hexdigest()
@@ -198,9 +210,8 @@ def after_all(context):
     #db.session.begin()
     db.session.query(Users).filter (Users.login == context.internal_vault['admin_user']).delete()
     #db.session.commit()
-    if hasattr(context,'tempdir'):
-        if os.path.exists ( context.tempdir ):
-            shutil.rmtree (context.tempdir)
+    if hasattr(context, 'tempdir') and os.path.exists(context.tempdir):
+        shutil.rmtree (context.tempdir)
     if hasattr(context,'smtp_pid'):
         os.kill (context.smtp_pid,signal.SIGTERM)
         delattr (context,'smtp_pid')

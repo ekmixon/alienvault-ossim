@@ -53,10 +53,7 @@ blueprint = Blueprint(__name__, __name__)
 def get_config_general(system_id):
 
     (success, config_values) = get_system_config_general(system_id)
-    if not success:
-        return make_error(config_values, 500)
-
-    return make_ok(**config_values)
+    return make_ok(**config_values) if success else make_error(config_values, 500)
 
 
 @blueprint.route('/<system_id>/config_alienvault', methods=['GET'])
@@ -66,10 +63,7 @@ def get_config_general(system_id):
 def get_config_alienvault(system_id):
 
     (success, config_values) = get_system_config_alienvault(system_id)
-    if not success:
-        return make_error(config_values, 500)
-
-    return make_ok(**config_values)
+    return make_ok(**config_values) if success else make_error(config_values, 500)
 
 
 @blueprint.route('/<system_id>/config', methods=['PUT'])
@@ -104,15 +98,16 @@ def set_config_general(system_id):
     set_values = {}
     for key, value in request.args.iteritems():
         if key not in param_names:
-            return make_error("Bad param %s" % key, 400)
+            return make_error(f"Bad param {key}", 400)
         else:
             set_values[key] = value
 
     (success, job_id) = set_system_config(system_id, set_values)
-    if not success:
-        return make_error("Error setting new configuration: %s" % job_id, 500)
-
-    return make_ok(job_id=job_id)
+    return (
+        make_ok(job_id=job_id)
+        if success
+        else make_error(f"Error setting new configuration: {job_id}", 500)
+    )
 
 
 @blueprint.route('/<system_id>/config_alienvault', methods=['PUT'])
@@ -136,15 +131,18 @@ def set_config_alienvault(system_id):
     set_values = {}
     for key, value in request.args.iteritems():
         if key not in param_names:
-            return make_error("Bad param %s" % key, 400)
+            return make_error(f"Bad param {key}", 400)
         else:
             set_values[key] = value
 
     (success, job_id) = set_system_config(system_id, set_values)
-    if not success:
-        return make_error("Cannot set AlienVault configuration info %s" % str(job_id), 500)
-
-    return make_ok(job_id=job_id)
+    return (
+        make_ok(job_id=job_id)
+        if success
+        else make_error(
+            f"Cannot set AlienVault configuration info {str(job_id)}", 500
+        )
+    )
 
 
 @blueprint.route('/telemetry', methods=['PUT'])

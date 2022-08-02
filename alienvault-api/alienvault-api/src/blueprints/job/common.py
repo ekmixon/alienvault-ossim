@@ -42,26 +42,25 @@ blueprint = Blueprint(__name__, __name__)
 @blueprint.route('/<job_id>', methods=['GET'])
 def job_status(job_id):
     job_full_status = celery_manager.CeleryManager.get_job_status(job_id)
-    success = True
     job_result = ""
     job_message = ""
     job_log = ""
     job_error_id = ""
-    if job_full_status:
-        status = job_full_status['type']
-        if 'result' in job_full_status:
-            result = eval(job_full_status['result'])
-            job_result = result
-            if isinstance(result,dict):
-                job_result = result['result']
-                job_message = result['message']
-                job_log = result['log_file']
-                job_error_id = result['error_id']
-        else:
-            result = ''
-        return api.lib.common.make_ok(job_status=status, job_success=success, job_result=job_result, job_message=job_message, job_log=job_log, job_error_id=job_error_id)
-    else:
+    if not job_full_status:
         return api.lib.common.make_error("No job found with ID '%s'" % job_id, 404)
+    status = job_full_status['type']
+    if 'result' in job_full_status:
+        result = eval(job_full_status['result'])
+        job_result = result
+        if isinstance(result,dict):
+            job_result = result['result']
+            job_message = result['message']
+            job_log = result['log_file']
+            job_error_id = result['error_id']
+    else:
+        result = ''
+    success = True
+    return api.lib.common.make_ok(job_status=status, job_success=success, job_result=job_result, job_message=job_message, job_log=job_log, job_error_id=job_error_id)
 
 
 @blueprint.route('/<job_id>/stop', methods=['PUT'])

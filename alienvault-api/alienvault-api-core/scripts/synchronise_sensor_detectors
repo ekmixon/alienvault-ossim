@@ -70,7 +70,7 @@ def run_command(command, args=None):
         output, error = pipe.communicate()
         return_code = pipe.returncode
     except Exception as exp:
-        logger.error("run_command: %s" % str(exp))
+        logger.error(f"run_command: {str(exp)}")
         return_code = 1
         output = ""
         error = str(exp)
@@ -121,14 +121,24 @@ def main():
     if output['sensor_mservers'] != "no":
         mservers = ','.join(output['sensor_mservers'])
     #It's important to remove the spaces, since the av_config module use it as a separator.
-    values = {"sensor_asec": str(output['sensor_asec']).replace(" ", ""),
-              "sensor_detectors": ','.join(output['sensor_detectors']).replace(" ", ""),
-              "sensor_interfaces": ','.join(output['sensor_interfaces']).replace(" ", ""),
-              "sensor_mservers": mservers.replace(" ", ""),
-              "sensor_netflow": str(output['sensor_netflow']).replace(" ", ""),
-              "sensor_networks": ','.join(str(output['sensor_networks']).split(',')).replace(" ", ""),
-              "sensor_monitors": str(','.join(output['sensor_monitors'].split(','))).replace(" ", ""),
-              }
+    values = {
+        "sensor_asec": str(output['sensor_asec']).replace(" ", ""),
+        "sensor_detectors": ','.join(output['sensor_detectors']).replace(
+            " ", ""
+        ),
+        "sensor_interfaces": ','.join(output['sensor_interfaces']).replace(
+            " ", ""
+        ),
+        "sensor_mservers": mservers.replace(" ", ""),
+        "sensor_netflow": str(output['sensor_netflow']).replace(" ", ""),
+        "sensor_networks": ','.join(
+            str(output['sensor_networks']).split(',')
+        ).replace(" ", ""),
+        "sensor_monitors": ','.join(
+            output['sensor_monitors'].split(',')
+        ).replace(" ", ""),
+    }
+
     success, message = set_system_sensor_configuration(system_id='local', set_values=values)
     if not success:
         logger.error("Cannot set the system configuration")

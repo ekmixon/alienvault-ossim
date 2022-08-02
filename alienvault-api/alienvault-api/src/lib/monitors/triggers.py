@@ -105,8 +105,7 @@ class TriggerCondition(object):
         self.__name = value
 
     def __repr__(self):
-        return "<condition msg_id=%s><name>%s</name><when>%s</when></condition>" % (
-        self.message_id, self.name, self.when)
+        return f"<condition msg_id={self.message_id}><name>{self.name}</name><when>{self.when}</when></condition>"
 
     def trigger_message(self, component_id, component_type, message_code, data=""):
         """
@@ -120,7 +119,7 @@ class TriggerCondition(object):
         try:
             rt = save_current_status_message(component_id, component_type, message_code, data)
         except Exception as error:
-            logger.error("[trigger_message] %s" % str(error))
+            logger.error(f"[trigger_message] {str(error)}")
             rt = False
         return rt
 
@@ -145,10 +144,7 @@ class TriggerCondition(object):
         aux_regex_expr = "\$(\S+)"
         aux_search = re.compile(aux_regex_expr).findall(self.when)
 
-        final_search = []
-        for token in aux_search:
-            final_search.append(tuple(token.split('.')))
-
+        final_search = [tuple(token.split('.')) for token in aux_search]
         # search_results = self.__regex_monitor.findall(self.when)
         # logger.error("%s" % search_results)
         # We could use several parameters within a monitor to test a condition.
@@ -192,7 +188,10 @@ class TriggerCondition(object):
                         total_parameters_in_condition += 1
 
             else:
-                logger.error("[get_monitor_and_parameters_to_be_evaluated] Invalid monitor name <%s>" % monitor_name)
+                logger.error(
+                    f"[get_monitor_and_parameters_to_be_evaluated] Invalid monitor name <{monitor_name}>"
+                )
+
 
         return monitor_parameters, total_parameters_in_condition
 
@@ -218,7 +217,7 @@ class TriggerCondition(object):
           }
         }
         """
-        logger.info("Running trigger condition... %s" % self.name)
+        logger.info(f"Running trigger condition... {self.name}")
 
         # Retrieve the information from the monitors that the condition are related with.
         result_set = get_all_monitor_data(monitor_parameters.keys())
@@ -261,23 +260,22 @@ class TriggerCondition(object):
                     if parameter in monitor_data:
                         # logger.info("*****\n%s\n%s\n*****\n" % (parameter, monitor_data))
                         if not isinstance(monitor_data[parameter], dict):
-                            replace_string = "$%s.%s" % (monitor_name, parameter)
+                            replace_string = f"${monitor_name}.{parameter}"
                             # print (replace_string)
                             replace_value = monitor_data[parameter]
                             replacements[replace_string] = replace_value
-                        else:
-                            if 'subparameters' in monitor_parameters[monitor_id].keys():
-                                for subparameter in monitor_parameters[monitor_id]['subparameters'][parameter]:
-                                    replace_string = "$%s.%s.%s" % (monitor_name, parameter, subparameter)
-                                    replace_value = monitor_data[parameter][subparameter]
-                                    replacements[replace_string] = replace_value
+                        elif 'subparameters' in monitor_parameters[monitor_id].keys():
+                            for subparameter in monitor_parameters[monitor_id]['subparameters'][parameter]:
+                                replace_string = f"${monitor_name}.{parameter}.{subparameter}"
+                                replace_value = monitor_data[parameter][subparameter]
+                                replacements[replace_string] = replace_value
 
             # print ("Total %s " % total_parameters_in_condition)
             # print ("R: %s" % replacements)
             if total_parameters_in_condition == len(replacements.keys()):  # We can evaluate the condition
                 condition = self.when
                 for replacement, new_value in replacements.iteritems():
-                    if isinstance(new_value, unicode) or isinstance(new_value, str):
+                    if isinstance(new_value, (unicode, str)):
                         new_value = '\"' + new_value + '\"'
                     condition = condition.replace(replacement, str(new_value))
                 # print (condition)
@@ -321,14 +319,14 @@ class Trigger(object):
             self.__conditions.append(condition)
 
     def __repr__(self):
-        trigger_repr = "<trigger id=%s name=%s><conditions>" % (self.id, self.name)
+        trigger_repr = f"<trigger id={self.id} name={self.name}><conditions>"
         for condition in self.__conditions:
             trigger_repr += str(condition)
         trigger_repr += "</conditions><trigger>"
         return trigger_repr
 
     def run(self):
-        logger.info("Running Trigger: %s" % self.__name)
+        logger.info(f"Running Trigger: {self.__name}")
         for condition in self.__conditions:
             condition.evaluate()
 
@@ -384,7 +382,10 @@ class TriggerReader(object):
                         c.message_id = message_id
                         trigger.append_condition(c)
                     else:
-                        logger.warning("Trigger message id not valid: %s" % condition['trigger_message_id'])
+                        logger.warning(
+                            f"Trigger message id not valid: {condition['trigger_message_id']}"
+                        )
+
             else:
                 logger.warning("Trigger without conditions")
 

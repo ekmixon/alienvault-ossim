@@ -62,12 +62,14 @@ def accepted_values(*values):
     def check_accepts(f):
         def new_f(*args, **kwds):
             for (a, v) in zip(args, values):
-                if (v != []) and (not a in v):
+                if v != [] and a not in v:
                     raise AssertionError("arg %r does not belong to '%s'" % (a, str(v)))
 
             return f(*args, **kwds)
+
         new_f.func_name = f.func_name
         return new_f
+
     return check_accepts
 
 
@@ -86,7 +88,12 @@ def require_db(func=None, accept_local=False):
             if accept_local:
                 local_passed = True
                 is_local_valid = ['system_id', 'server_id', 'sensor_id']
-                local_params = [x for x in is_local_valid if x in kwargs.keys() and kwargs[x].lower() == 'local'] + [y for y in args if y.lower() == 'local']
+                local_params = [
+                    x
+                    for x in is_local_valid
+                    if x in kwargs and kwargs[x].lower() == 'local'
+                ] + [y for y in args if y.lower() == 'local']
+
                 if local_params == []:
                     raise AssertionError("Tried to access the database from a non connected profile")
             else:

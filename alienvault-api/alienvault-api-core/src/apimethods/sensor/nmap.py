@@ -65,7 +65,7 @@ def get_nmap_directory(sensor_id):
     success, base_path = get_base_path_from_sensor_id(sensor_id)
     if not success:
         raise APINMAPScanCannotRetrieveBaseFolder(base_path)
-    destination_path = base_path + "/nmap/"
+    destination_path = f"{base_path}/nmap/"
 
     # Create directory if not exists
     success, msg = create_local_directory(destination_path)
@@ -104,19 +104,21 @@ def apimethod_run_nmap_scan(sensor_id, target, idm, scan_type, rdns, scan_timing
     (result, sensor_ip) = get_sensor_ip_from_sensor_id(sensor_id, local_loopback=False)
     if result is False:
         api_log.error(
-            "[apimethod_run_nmap_scan] Cannot retrieve the sensor ip from the given sensor id <%s>" % sensor_id)
+            f"[apimethod_run_nmap_scan] Cannot retrieve the sensor ip from the given sensor id <{sensor_id}>"
+        )
+
         raise APICannotResolveSensorID(sensor_id)
     success, nmap_report = ansible_run_nmap_scan(sensor_ip=sensor_ip, target=target, scan_type=scan_type, rdns=rdns,
                                                  scan_timing=scan_timing, autodetect=autodetect, scan_ports=scan_ports,
                                                  job_id=job_id)
     if not success:
-        api_log.error('Failed to launch NMAP scan: %s' % nmap_report)
+        api_log.error(f'Failed to launch NMAP scan: {nmap_report}')
         raise APINMAPScanCannotRun(nmap_report)
 
     filename = None
     if save_to_file:
         base_path = get_nmap_directory(sensor_id)
-        filename = "%s/nmap_report_%s.json" % (base_path, output_file_prefix)
+        filename = f"{base_path}/nmap_report_{output_file_prefix}.json"
         with open(filename, "w") as f:
             f.write(json.dumps(nmap_report))
 
@@ -134,7 +136,10 @@ def apimethod_run_nmap_scan(sensor_id, target, idm, scan_type, rdns, scan_timing
     try:
         apimethods_nmap_purge_scan_files(job_id)
     except Exception as exp:
-        api_log.warning("[apimethod_run_nmap_scan] Cannot purge the scan files %s" % str(exp))
+        api_log.warning(
+            f"[apimethod_run_nmap_scan] Cannot purge the scan files {str(exp)}"
+        )
+
     return nmap_report
 
 
@@ -178,7 +183,10 @@ def apimethod_delete_nmap_scan(sensor_id, task_id):
         # When the NMAP scan has been stopped by the user, it could leave some files in tmp folder.
         apimethods_nmap_purge_scan_files(task_id)
     except Exception as exp:
-        api_log.warning("[apimethod_delete_nmap_scan] Cannot purge the scan files %s" % str(exp))
+        api_log.warning(
+            f"[apimethod_delete_nmap_scan] Cannot purge the scan files {str(exp)}"
+        )
+
     apimethod_nmapdb_delete_task(task_id)
     directory = get_nmap_directory(sensor_id)
     nmap_report_path = "{0}/nmap_report_{1}.json".format(directory, task_id)
@@ -207,7 +215,9 @@ def apimethod_monitor_nmap_scan(sensor_id, task_id):
     (result, sensor_ip) = get_sensor_ip_from_sensor_id(sensor_id, local_loopback=False)
     if result is False:
         api_log.error(
-            "[apimethod_monitor_nmap_scan] Cannot retrieve the sensor ip from the given sensor id <%s>" % sensor_id)
+            f"[apimethod_monitor_nmap_scan] Cannot retrieve the sensor ip from the given sensor id <{sensor_id}>"
+        )
+
         raise APICannotResolveSensorID(sensor_id)
     try:
         nhosts = ansible_nmap_get_scan_progress(sensor_ip=sensor_ip, task_id=task_id)
@@ -226,15 +236,11 @@ def apimethod_get_nmap_scan_list(user):
     Raises:
         Exception: When something wrong happen
     """
-    user_scans = []
     db = NMAPScansDB()
     scans = db.get_all()
     del db
 
-    for scan in scans:
-        if scan['scan_user'] == user:
-            user_scans.append(scan)
-    return user_scans
+    return [scan for scan in scans if scan['scan_user'] == user]
 
 
 def apimethod_delete_running_scans(user):
@@ -276,27 +282,26 @@ def apimethod_get_nmap_scan_status(task_id):
                 # Maybe the job is not in the database yet
                 # check if the job is scheduled.
                 task = is_task_in_celery(task_id)
-                if task is not None:
-                    if task_id == task['id']:
-                        task_kwargs = ast.literal_eval(task['kwargs'])
-                        # La info va a de kwargs
-                        job = {"job_id": task['id'],
-                               "sensor_id": task_kwargs['sensor_id'],
-                               "idm": task_kwargs['idm'],
-                               "target_number": task_kwargs['targets_number'],
-                               "scan_params": {"target": task_kwargs['target'],
-                                               "scan_type": task_kwargs['scan_type'],
-                                               "rdns": task_kwargs['rdns'],
-                                               "autodetect": task_kwargs['autodetect'],
-                                               "scan_timing": task_kwargs['scan_timing'],
-                                               "scan_ports": task_kwargs['scan_ports']},
-                               "status": "In Progress",
-                               "scanned_hosts": 0,
-                               "scan_user": task_kwargs['user'],
-                               "start_time": int(time.time()),
-                               "end_time": -1,
-                               "remaining_time": -1}
-                        tries = 0
+                if task is not None and task_id == task['id']:
+                    task_kwargs = ast.literal_eval(task['kwargs'])
+                    # La info va a de kwargs
+                    job = {"job_id": task['id'],
+                           "sensor_id": task_kwargs['sensor_id'],
+                           "idm": task_kwargs['idm'],
+                           "target_number": task_kwargs['targets_number'],
+                           "scan_params": {"target": task_kwargs['target'],
+                                           "scan_type": task_kwargs['scan_type'],
+                                           "rdns": task_kwargs['rdns'],
+                                           "autodetect": task_kwargs['autodetect'],
+                                           "scan_timing": task_kwargs['scan_timing'],
+                                           "scan_ports": task_kwargs['scan_ports']},
+                           "status": "In Progress",
+                           "scanned_hosts": 0,
+                           "scan_user": task_kwargs['user'],
+                           "start_time": int(time.time()),
+                           "end_time": -1,
+                           "remaining_time": -1}
+                    tries = 0
 
                 time.sleep(1)
             tries -= 1
@@ -337,10 +342,10 @@ def apimethods_stop_scan(task_id):
             results = {}
             if os.path.isfile(result_file):
                 with open(result_file, "r") as f:
-                    for line in f.readlines():
+                    for line in f:
                         d = json.loads(line)
                         results[d["host"]] = d["scan"]
-                filename = "%s/nmap_report_%s.json" % (base_path, task_id)
+                filename = f"{base_path}/nmap_report_{task_id}.json"
                 with open(filename, "w") as f:
                     f.write(json.dumps(results))
         except Exception as e:
@@ -378,7 +383,7 @@ def apimethod_nmapdb_add_task(task_id, task_data):
         api_log.error("[apimethod_nmapdb_add_task] NMAPScanCannotBeSaved - Cannot save task")
         raise APINMAPScanCannotBeSaved()
     except Exception as e:
-        api_log.error("[apimethod_nmapdb_add_task] Cannot save task %s" % str(e))
+        api_log.error(f"[apimethod_nmapdb_add_task] Cannot save task {str(e)}")
     finally:
         del db
     return rt

@@ -93,23 +93,22 @@ def get_pids(module):
     psbin = module.get_bin_path('ps', True)
 
     # Set ps flags
-    if platform.system() == 'SunOS':
-        psflags = '-ef'
-    else:
-        psflags = 'auxww'
-
+    psflags = '-ef' if platform.system() == 'SunOS' else 'auxww'
     # run ps command
-    cmd = '%s %s' % (psbin, psflags)
+    cmd = f'{psbin} {psflags}'
     (rc, out, err) = module.run_command(cmd)
     if rc != 0:
-        module.fail_json(msg='Fatal error running command %s' % cmd, stdout=out, stderr=err)
+        module.fail_json(
+            msg=f'Fatal error running command {cmd}', stdout=out, stderr=err
+        )
+
 
     # parse ps output into list of pid's
     pids = []
     lines = out.split("\n")
     for line in lines:
         # exclude ps itself, hacking/test-module script and ps output header
-        if pattern in line and not "name=" in line and not 'PID' in line:
+        if pattern in line and "name=" not in line and 'PID' not in line:
             # add second PID column to list
             pids.extend([line.split()[1]])
     return pids
@@ -123,10 +122,10 @@ def kill_process(module, pids, signal):
     pids_str = ' '.join(str(x) for x in pids )
 
     # kill --signal <signal> <pid1 pid2  ...>
-    cmd = '%s -%s %s' % (killbin, signal, pids_str)
+    cmd = f'{killbin} -{signal} {pids_str}'
     if signal == 'NOKILL':
         # don't execute any kill command
-        cmd = ': ' + cmd
+        cmd = f': {cmd}'
     (rc, out, err) = module.run_command(cmd)
 
 
@@ -153,7 +152,10 @@ def check_with_count(module, result, fail):
     waittimes = module.params['wait'].split(',')
 
     if len(killsignals) > len(waittimes):
-        module.fail_json(msg='you need at least as many wait times (got %s) as killsignals (got %s)' % (len(killsignals), len(waits)))
+        module.fail_json(
+            msg=f'you need at least as many wait times (got {len(killsignals)}) as killsignals (got {len(waits)})'
+        )
+
 
     pids = get_pids(module)
     running = len(pids)
@@ -168,7 +170,7 @@ def check_with_count(module, result, fail):
             still_running = 0
             signal = None
 
-        elif not module.check_mode:
+        else:
             # there are active processes so now really kill them all
             # loop through the kill signals in order, and try killing the process(es)
 
@@ -181,13 +183,13 @@ def check_with_count(module, result, fail):
                 still_running = len(pids)
                 if still_running == 0:
                     break
-            result['time_elapsed'] = '%s s' % (time.time() - t0)
+            result['time_elapsed'] = f'{time.time() - t0} s'
 
         killed = running - still_running
         result['still_running'] = still_running
         result['killed'] = killed
         result['signal'] = signal
-        result['msg'] = 'killed %s processes' % killed
+        result['msg'] = f'killed {killed} processes'
 
         # changed is only true when we killed
         if killed != 0:
@@ -197,12 +199,14 @@ def check_with_count(module, result, fail):
         if killed != running:
             fail = True
 
-    # check if we have the right number of running processes
     elif count > 0:
         if count == running:
-            result['msg'] = 'Number of running processes (%s) is equal to %s' % (running, count)
+            result['msg'] = f'Number of running processes ({running}) is equal to {count}'
         else:
-            result['msg'] = 'Number of running processes (%s) is not equal to %s' % (running, count)
+            result[
+                'msg'
+            ] = f'Number of running processes ({running}) is not equal to {count}'
+
             fail = True
 
     else:
@@ -222,26 +226,47 @@ def check_with_minmaxcount(module, result, fail):
 
     if mincount is not None and maxcount is not None:
         if mincount >= maxcount:
-            result['msg'] = 'Minimum (%s) should be smaller than maximum (%s)' % (mincount, maxcount)
+            result[
+                'msg'
+            ] = f'Minimum ({mincount}) should be smaller than maximum ({maxcount})'
+
             fail = True
 
         elif mincount <= running <= maxcount:
-            result['msg'] = 'Number of running processes (%s) is in the range %s -> %s.' % (running, mincount, maxcount)
+            result[
+                'msg'
+            ] = f'Number of running processes ({running}) is in the range {mincount} -> {maxcount}.'
+
         else:
-            result['msg'] = 'Number of running processes (%s) is not in the range %s -> %s.' % (running, mincount, maxcount)
+            result[
+                'msg'
+            ] = f'Number of running processes ({running}) is not in the range {mincount} -> {maxcount}.'
+
             fail = True
     elif mincount is not None:
         if mincount <= running:
-            result['msg'] = 'Number of running processes (%s) is larger than %s' % (running, mincount)
+            result[
+                'msg'
+            ] = f'Number of running processes ({running}) is larger than {mincount}'
+
         else:
-            result['msg'] = 'Number of running processes (%s) is smaller than %s' % (running, mincount)
+            result[
+                'msg'
+            ] = f'Number of running processes ({running}) is smaller than {mincount}'
+
             fail = True
     elif maxcount is not None:
         result['maxcount'] = maxcount
         if running <= maxcount:
-            result['msg'] = 'Number of running processes (%s) is smaller than %s' % (running, maxcount)
+            result[
+                'msg'
+            ] = f'Number of running processes ({running}) is smaller than {maxcount}'
+
         else:
-            result['msg'] = 'Number of running processes (%s) is larger than %s' % (running, maxcount)
+            result[
+                'msg'
+            ] = f'Number of running processes ({running}) is larger than {maxcount}'
+
             fail = True
 
     return (result, fail)
@@ -261,16 +286,14 @@ def main():
         supports_check_mode=True,
         mutually_exclusive=[['count', 'mincount'], ['count', 'maxcount']],
         required_one_of=[['count', 'mincount' , 'maxcount']]
-    )   
+    )
     name = module.params['name']
     count = module.params['count']
     mincount = module.params['mincount']
     maxcount = module.params['maxcount']
 
-    # return json dict 
-    result = {}
-    result['name'] = name
-
+    # return json dict
+    result = {'name': name}
     # retrieve pids matching the name pattern
     pids = get_pids(module)
     result['pids'] = pids

@@ -13,12 +13,12 @@ def given_add_ossec_agent(context, var_uuid, st_ip, var_agent_name, var_id):
         Create a local ossec agent with 
     """
     u = uuid.UUID(context.alienvault[var_uuid])
-    url = "https://127.0.0.1:40011/av/api/1.0/sensor/" + str(u) + "/ossec/agent"
+    url = f"https://127.0.0.1:40011/av/api/1.0/sensor/{str(u)}/ossec/agent"
     context.urlparams['agent_name'] = var_agent_name
-    context.urlparams['agent_ip'] = st_ip 
+    context.urlparams['agent_ip'] = st_ip
     context.execute_steps(unicode("When I send a PUT request to url \"%s\"" % url))
     result = context.result.getvalue()
-    print ("CRG %s" % result)
+    print(f"CRG {result}")
 
     assert context.resultcode == 200, "Can't create ossec agent"
     try:
